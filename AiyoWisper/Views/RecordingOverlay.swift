@@ -16,6 +16,7 @@ final class RecordingOverlay {
         withObservationTracking {
             _ = appState.status
             _ = appState.detectedLanguage
+            _ = appState.lastCommand
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 self?.updateVisibility()
@@ -27,7 +28,8 @@ final class RecordingOverlay {
     private func updateVisibility() {
         guard let appState else { return }
         switch appState.status {
-        case .recording, .transcribing:
+        case .recording, .transcribing,
+             .commandRecording, .commandTranscribing, .commandProcessing:
             show(status: appState.status)
         default:
             hide()
@@ -42,7 +44,11 @@ final class RecordingOverlay {
         guard let panel else { return }
 
         let hostingView = NSHostingView(
-            rootView: RecordingOverlayContent(status: status, detectedLanguage: appState?.detectedLanguage)
+            rootView: RecordingOverlayContent(
+                status: status,
+                detectedLanguage: appState?.detectedLanguage,
+                lastCommand: appState?.lastCommand
+            )
         )
         hostingView.frame = NSRect(x: 0, y: 0, width: 200, height: 44)
         panel.contentView = hostingView
@@ -82,10 +88,12 @@ final class RecordingOverlay {
 private struct RecordingOverlayContent: View {
     let status: DictationStatus
     var detectedLanguage: String?
+    var lastCommand: String?
 
     var body: some View {
         HStack(spacing: 8) {
-            if status == .recording {
+            switch status {
+            case .recording:
                 Circle()
                     .fill(.red)
                     .frame(width: 8, height: 8)
@@ -93,7 +101,7 @@ private struct RecordingOverlayContent: View {
                 Text("Recording...")
                     .font(.caption)
                     .fontWeight(.medium)
-            } else {
+            case .transcribing:
                 ProgressView()
                     .controlSize(.small)
                 VStack(alignment: .leading, spacing: 2) {
@@ -106,6 +114,36 @@ private struct RecordingOverlayContent: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+            case .commandRecording:
+                Circle()
+                    .fill(.purple)
+                    .frame(width: 8, height: 8)
+                    .modifier(PulseModifier())
+                Text("Command Mode...")
+                    .font(.caption)
+                    .fontWeight(.medium)
+            case .commandTranscribing:
+                ProgressView()
+                    .controlSize(.small)
+                Text("Transcribing command...")
+                    .font(.caption)
+                    .fontWeight(.medium)
+            case .commandProcessing:
+                ProgressView()
+                    .controlSize(.small)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Processing...")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    if let command = lastCommand, !command.isEmpty {
+                        Text(command)
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            default:
+                EmptyView()
             }
         }
         .padding(.horizontal, 14)
