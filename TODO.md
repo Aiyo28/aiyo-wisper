@@ -76,20 +76,25 @@
 ## Phase 2 — Smart Formatting & Language Detection
 
 ### Smart Formatting Engine
-- [ ] Implement SmartFormatter post-processing pipeline
+- [x] Implement SmartFormatter post-processing pipeline
+- [x] Add filler word removal ("um", "uh", "like", "you know", "basically")
+- [x] Basic course correction (rule-based with known trigger phrases)
+- [x] Punctuation/capitalization polish for tiny/base models
 - [ ] Add punctuation insertion (periods, commas, question marks, exclamation marks)
 - [ ] Add sentence-start capitalization
-- [ ] Add filler word removal ("um", "uh", "like", "you know", "basically")
 - [ ] Implement course correction detection and cleanup
 - [ ] Research and decide: rule-based vs. local LLM approach
 
 ### Language Detection
-- [ ] Enable Whisper's built-in language detection
-- [ ] Display detected language in recording indicator
+- [x] Pass language preference to WhisperKit DecodingOptions
+- [x] Support auto-detect mode (language: nil)
+- [x] Display detected language in recording indicator
+- [x] English and Russian language options
 - [ ] Support auto-switching between languages without manual toggle
 
 ### Per-App Profiles
-- [ ] Detect focused application bundle ID
+- [x] Detect focused application bundle ID for minimal mode
+- [x] Minimal formatting toggle for code editors
 - [ ] Create default formatting profiles (prose, code, chat)
 - [ ] Allow user to assign profiles to specific apps
 - [ ] Minimal formatting mode for code editors (no auto-punctuation)
