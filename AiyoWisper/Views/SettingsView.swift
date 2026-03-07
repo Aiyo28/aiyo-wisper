@@ -4,7 +4,9 @@ import ServiceManagement
 struct SettingsView: View {
     let appState: AppState
     let modelManager: ModelManager
+    let shortcutManager: ShortcutManager
     var onModelSelected: (() -> Void)?
+    var onLLMSettingsChanged: (() -> Void)?
 
     var body: some View {
         TabView {
@@ -20,6 +22,14 @@ struct SettingsView: View {
                 FormattingTab(appState: appState)
             }
 
+            Tab("Command Mode", systemImage: "command") {
+                CommandModeTab(appState: appState, onLLMSettingsChanged: onLLMSettingsChanged)
+            }
+
+            Tab("Shortcuts", systemImage: "text.badge.star") {
+                ShortcutsTab(shortcutManager: shortcutManager)
+            }
+
             Tab("Models", systemImage: "cpu") {
                 ModelsTab(appState: appState, modelManager: modelManager, onModelSelected: onModelSelected)
             }
@@ -28,7 +38,7 @@ struct SettingsView: View {
                 AboutTab()
             }
         }
-        .frame(width: 480, height: 320)
+        .frame(width: 480, height: 380)
     }
 }
 
@@ -63,9 +73,18 @@ private struct HotkeyTab: View {
         Form {
             Section {
                 HStack {
-                    Text("Record hotkey")
+                    Text("Dictation hotkey")
                     Spacer()
                     Text("Control (hold)")
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+                }
+
+                HStack {
+                    Text("Command hotkey")
+                    Spacer()
+                    Text("Option (hold)")
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
@@ -127,6 +146,178 @@ private struct FormattingTab: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+// MARK: - Command Mode
+
+private struct CommandModeTab: View {
+    let appState: AppState
+    var onLLMSettingsChanged: (() -> Void)?
+
+    @State private var commandModeEnabled: Bool
+    @State private var llmEndpoint: String
+    @State private var llmModel: String
+    @State private var connectionStatus: ConnectionStatus = .idle
+
+    private enum ConnectionStatus: Equatable {
+        case idle
+        case testing
+        case success
+        case failure
+    }
+
+    init(appState: AppState, onLLMSettingsChanged: (() -> Void)?) {
+        self.appState = appState
+        self.onLLMSettingsChanged = onLLMSettingsChanged
+        _commandModeEnabled = State(initialValue: appState.commandModeEnabled)
+        _llmEndpoint = State(initialValue: appState.llmEndpoint)
+        _llmModel = State(initialValue: appState.llmModel)
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Enable command mode", isOn: $commandModeEnabled)
+                    .onChange(of: commandModeEnabled) { _, newValue in
+                        appState.commandModeEnabled = newValue
+                    }
+            }
+
+            Section("LLM Server") {
+                TextField("Endpoint URL", text: $llmEndpoint)
+                    .textFieldStyle(.roundedBorder)
+                    .onChange(of: llmEndpoint) { _, newValue in
+                        appState.llmEndpoint = newValue
+                        onLLMSettingsChanged?()
+                    }
+
+                TextField("Model name", text: $llmModel)
+                    .textFieldStyle(.roundedBorder)
+                    .onChange(of: llmModel) { _, newValue in
+                        appState.llmModel = newValue
+                        onLLMSettingsChanged?()
+                    }
+
+                HStack {
+                    Button("Test Connection") {
+                        connectionStatus = .testing
+                        Task {
+                            let service = LLMService(endpointURL: llmEndpoint, modelName: llmModel)
+                            let success = await service.testConnection()
+                            connectionStatus = success ? .success : .failure
+                        }
+                    }
+                    .disabled(connectionStatus == .testing || llmEndpoint.isEmpty)
+
+                    switch connectionStatus {
+                    case .idle:
+                        EmptyView()
+                    case .testing:
+                        ProgressView()
+                            .controlSize(.small)
+                    case .success:
+                        Label("Connected", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                    case .failure:
+                        Label("Connection failed", systemImage: "xmark.circle.fill")
+                            .foregroundStyle(.red)
+                            .font(.caption)
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Shortcuts
+
+private struct ShortcutsTab: View {
+    let shortcutManager: ShortcutManager
+    @State private var showingAddSheet = false
+
+    var body: some View {
+        Form {
+            if shortcutManager.shortcuts.isEmpty {
+                ContentUnavailableView {
+                    Label("No Shortcuts", systemImage: "text.badge.star")
+                } description: {
+                    Text("Add trigger phrases that expand into longer text during dictation.")
+                }
+            } else {
+                Section("Trigger Phrases") {
+                    List {
+                        ForEach(shortcutManager.shortcuts) { shortcut in
+                            HStack {
+                                Text(shortcut.trigger)
+                                    .fontWeight(.medium)
+                                Image(systemName: "arrow.right")
+                                    .foregroundStyle(.secondary)
+                                    .font(.caption)
+                                Text(shortcut.expansion)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                            .swipeActions(edge: .trailing) {
+                                Button("Delete", role: .destructive) {
+                                    shortcutManager.deleteShortcut(id: shortcut.id)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Section {
+                Button("Add Shortcut") {
+                    showingAddSheet = true
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .sheet(isPresented: $showingAddSheet) {
+            AddShortcutSheet(shortcutManager: shortcutManager, isPresented: $showingAddSheet)
+        }
+    }
+}
+
+private struct AddShortcutSheet: View {
+    let shortcutManager: ShortcutManager
+    @Binding var isPresented: Bool
+    @State private var trigger = ""
+    @State private var expansion = ""
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Add Shortcut")
+                .font(.headline)
+
+            Form {
+                TextField("Trigger phrase", text: $trigger)
+                    .textFieldStyle(.roundedBorder)
+                TextField("Expands to", text: $expansion)
+                    .textFieldStyle(.roundedBorder)
+            }
+            .formStyle(.grouped)
+
+            HStack {
+                Button("Cancel") {
+                    isPresented = false
+                }
+                .keyboardShortcut(.cancelAction)
+
+                Button("Add") {
+                    shortcutManager.addShortcut(trigger: trigger, expansion: expansion)
+                    isPresented = false
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(trigger.isEmpty || expansion.isEmpty)
+            }
+        }
+        .padding()
+        .frame(width: 360, height: 240)
     }
 }
 

@@ -4,6 +4,7 @@ import SwiftUI
 struct AiyoWisperApp: App {
     @State private var appState = AppState()
     @State private var modelManager = ModelManager()
+    @State private var shortcutManager = ShortcutManager()
     @State private var pipeline: DictationPipeline?
     @State private var overlay = RecordingOverlay()
     @Environment(\.openWindow) private var openWindow
@@ -30,10 +31,14 @@ struct AiyoWisperApp: App {
             SettingsView(
                 appState: appState,
                 modelManager: modelManager,
+                shortcutManager: shortcutManager,
                 onModelSelected: {
                     Task {
                         await pipeline?.loadSelectedModel()
                     }
+                },
+                onLLMSettingsChanged: {
+                    pipeline?.updateLLMSettings()
                 }
             )
         }
@@ -50,7 +55,8 @@ struct AiyoWisperApp: App {
     init() {
         let state = _appState.wrappedValue
         let manager = _modelManager.wrappedValue
-        let dictationPipeline = DictationPipeline(appState: state, modelManager: manager)
+        let shortcuts = _shortcutManager.wrappedValue
+        let dictationPipeline = DictationPipeline(appState: state, modelManager: manager, shortcutManager: shortcuts)
         _pipeline = State(initialValue: dictationPipeline)
 
         let recordingOverlay = _overlay.wrappedValue
