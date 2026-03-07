@@ -42,6 +42,23 @@ struct MenuBarView: View {
             }
             .font(.caption)
 
+            HStack {
+                Text("Language:")
+                    .foregroundStyle(.secondary)
+                if appState.autoDetectLanguage {
+                    Text("Auto")
+                        .fontWeight(.medium)
+                    if let detected = appState.detectedLanguage {
+                        Text("(\(detected))")
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text(appState.preferredLanguage.uppercased())
+                        .fontWeight(.medium)
+                }
+            }
+            .font(.caption)
+
             if let error = appState.errorMessage {
                 Divider()
                 Text(error)
