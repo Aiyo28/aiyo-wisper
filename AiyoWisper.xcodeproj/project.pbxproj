@@ -15,6 +15,7 @@
 		612A94A51030D4C383E79A1C /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB93F2DC13D400BE7BA2F459 /* Constants.swift */; };
 		6155B5AE3BED94700DCC5ECD /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A625056815F0721CC6C673E2 /* AppState.swift */; };
 		672930A6F99F31001B725781 /* DictationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = C948B47A2217EE8E08D3E707 /* DictationPipeline.swift */; };
+		683D66FEE9D824DAE4995522 /* LLMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238C425E081DC012B7C57E6C /* LLMService.swift */; };
 		943A4E7747DC974B53C9C05A /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C15B5DEBE22539D3014FB0 /* MenuBarView.swift */; };
 		9603911147B3BB430DDC7FEC /* RecordingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A67995E6D050736F1A924D0 /* RecordingOverlay.swift */; };
 		9EDBCB1D5BE38FB4C30400FF /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228E4AED20E4762580EDB048 /* AudioRecorder.swift */; };
@@ -32,6 +33,7 @@
 		09836C226C242967F5E312F4 /* TranscriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionEngine.swift; sourceTree = "<group>"; };
 		1A67995E6D050736F1A924D0 /* RecordingOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingOverlay.swift; sourceTree = "<group>"; };
 		228E4AED20E4762580EDB048 /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
+		238C425E081DC012B7C57E6C /* LLMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMService.swift; sourceTree = "<group>"; };
 		254BE7E8F52D4EF8FC2219F6 /* ModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelManager.swift; sourceTree = "<group>"; };
 		270CC0332E30F077940E8C29 /* CommandProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandProcessor.swift; sourceTree = "<group>"; };
 		4BAC2BE20473E64500652CA8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -108,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				5AB9276147FF3D4774A3D586 /* HotkeyService.swift */,
+				238C425E081DC012B7C57E6C /* LLMService.swift */,
 				254BE7E8F52D4EF8FC2219F6 /* ModelManager.swift */,
 				B4C33A44D0055F30BB8159C6 /* PermissionService.swift */,
 			);
@@ -219,6 +222,7 @@
 				612A94A51030D4C383E79A1C /* Constants.swift in Sources */,
 				672930A6F99F31001B725781 /* DictationPipeline.swift in Sources */,
 				C004A35F306EDDE5140D2408 /* HotkeyService.swift in Sources */,
+				683D66FEE9D824DAE4995522 /* LLMService.swift in Sources */,
 				943A4E7747DC974B53C9C05A /* MenuBarView.swift in Sources */,
 				0A914852748592431DF5C920 /* ModelManager.swift in Sources */,
 				C27B5BEAB38D6A7F722A1E16 /* OnboardingView.swift in Sources */,
