@@ -7,6 +7,7 @@ final class DictationPipeline {
     private let transcriptionEngine = TranscriptionEngine()
     private let hotkeyService = HotkeyService()
     private let modelManager: ModelManager
+    private let smartFormatter = SmartFormatter()
     private var recordingStartTime: Date?
     private var isProcessing = false
 
@@ -86,7 +87,6 @@ final class DictationPipeline {
 
     private func stopRecordingAndTranscribe() async {
         guard appState.status == .recording else { return }
-        defer { isProcessing = false }
 
         let duration = recordingStartTime.map { Date().timeIntervalSince($0) } ?? 0
         let samples = audioRecorder.stopRecording()
@@ -99,24 +99,27 @@ final class DictationPipeline {
         appState.status = .transcribing
 
         do {
-            let text = try await transcriptionEngine.transcribe(audioSamples: samples)
+            let language: String? = appState.autoDetectLanguage ? nil : appState.preferredLanguage
+            let result = try await transcriptionEngine.transcribe(audioSamples: samples, language: language)
 
-            guard !text.isEmpty else {
+            appState.detectedLanguage = result.language
+
+            guard !result.text.isEmpty else {
+                appState.status = .idle
+                return
+            }
+
+            let minimalMode = SmartFormatter.shouldUseMinimalMode(setting: appState.minimalFormattingForEditors)
+            let formatted = smartFormatter.format(result.text, modelId: appState.selectedModel, minimalMode: minimalMode)
+
+            guard !formatted.isEmpty else {
                 appState.status = .idle
                 return
             }
 
             appState.status = .injecting
-            appState.lastTranscription = text
-            let injected = await Task.detached {
-                TextInjector.inject(text)
-            }.value
-            if !injected {
-                appState.status = .error
-                appState.errorMessage = "Accessibility permission not granted"
-                scheduleErrorReset()
-                return
-            }
+            appState.lastTranscription = formatted
+            TextInjector.inject(formatted)
             appState.status = .idle
         } catch {
             appState.status = .error
