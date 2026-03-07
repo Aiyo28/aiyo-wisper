@@ -4,6 +4,7 @@ import ServiceManagement
 struct SettingsView: View {
     let appState: AppState
     let modelManager: ModelManager
+    var onModelSelected: (() -> Void)?
 
     var body: some View {
         TabView {
@@ -16,7 +17,7 @@ struct SettingsView: View {
             }
 
             Tab("Models", systemImage: "cpu") {
-                ModelsTab(appState: appState, modelManager: modelManager)
+                ModelsTab(appState: appState, modelManager: modelManager, onModelSelected: onModelSelected)
             }
 
             Tab("About", systemImage: "info.circle") {
@@ -76,6 +77,7 @@ private struct HotkeyTab: View {
 private struct ModelsTab: View {
     let appState: AppState
     let modelManager: ModelManager
+    var onModelSelected: (() -> Void)?
     @State private var downloadError: String?
 
     var body: some View {
@@ -105,6 +107,7 @@ private struct ModelsTab: View {
                                 if appState.selectedModel != model.id {
                                     Button("Select") {
                                         appState.selectedModel = model.id
+                                        onModelSelected?()
                                     }
                                     .controlSize(.small)
                                 }
