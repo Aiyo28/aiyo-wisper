@@ -35,6 +35,9 @@ enum Constants {
     enum UserDefaultsKeys {
         static let isOnboarded = "isOnboarded"
         static let selectedModel = "selectedModel"
+        static let preferredLanguage = "preferredLanguage"
+        static let autoDetectLanguage = "autoDetectLanguage"
+        static let minimalFormattingForEditors = "minimalFormattingForEditors"
     }
 
     enum TextInjection {
@@ -46,5 +49,48 @@ enum Constants {
             "com.mitchellh.ghostty",
             "dev.warp.Warp-Stable",
         ]
+    }
+
+    enum Formatting {
+        static let fillerPatterns: [String] = [
+            "\\b(?:um|uh|erm|ah)\\b,?\\s*",
+            "\\byou know,?\\s*",
+            "\\bbasically,?\\s*",
+            "\\blike,?\\s+(?=\\w)",
+            "\\bI mean,?\\s+",
+            "\\bso,?\\s+(?=so\\b|basically\\b|like\\b|anyway\\b)",
+        ]
+
+        static let correctionMarkers: [String] = [
+            "no wait,?\\s*",
+            "I meant?,?\\s*",
+            "sorry,?\\s*",
+            "actually no,?\\s*",
+            "let me rephrase,?\\s*",
+            "what I meant (?:is|was),?\\s*",
+        ]
+
+        static let codeEditorBundleIDs: Set<String> = [
+            "com.apple.Terminal",
+            "com.googlecode.iterm2",
+            "io.alacritty",
+            "com.mitchellh.ghostty",
+            "dev.warp.Warp-Stable",
+            "com.microsoft.VSCode",
+            "com.apple.dt.Xcode",
+            "dev.zed.Zed",
+            "com.sublimetext.4",
+            "com.jetbrains.intellij",
+        ]
+
+        static let smallModels: Set<String> = ["tiny", "base"]
+    }
+
+    enum Language {
+        static let available: [(code: String, name: String)] = [
+            ("en", "English"),
+            ("ru", "Russian"),
+        ]
+        static let defaultLanguage = "en"
     }
 }
