@@ -112,7 +112,11 @@ private struct ModelsTab: View {
                                     .controlSize(.small)
                                 }
                                 Button("Delete", role: .destructive) {
-                                    try? modelManager.deleteModel(model.id)
+                                    do {
+                                        try modelManager.deleteModel(model.id)
+                                    } catch {
+                                        downloadError = "Failed to delete model: \(error.localizedDescription)"
+                                    }
                                     if appState.selectedModel == model.id {
                                         if let first = modelManager.availableModels.first(where: \.isDownloaded) {
                                             appState.selectedModel = first.id

@@ -5,7 +5,6 @@ import SwiftUI
 final class RecordingOverlay {
     private var panel: NSPanel?
     private var appState: AppState?
-    private var observation: Any?
 
     func observe(_ appState: AppState) {
         self.appState = appState
@@ -14,7 +13,7 @@ final class RecordingOverlay {
 
     private func startObserving() {
         guard let appState else { return }
-        observation = withObservationTracking {
+        withObservationTracking {
             _ = appState.status
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in

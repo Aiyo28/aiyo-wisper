@@ -2,8 +2,9 @@ import Carbon.HIToolbox
 import Cocoa
 
 struct TextInjector {
-    static func inject(_ text: String) {
-        guard PermissionService.checkAccessibilityPermission() else { return }
+    @discardableResult
+    static func inject(_ text: String) -> Bool {
+        guard PermissionService.checkAccessibilityPermission() else { return false }
 
         let frontApp = NSWorkspace.shared.frontmostApplication
         let bundleID = frontApp?.bundleIdentifier ?? ""
@@ -13,6 +14,7 @@ struct TextInjector {
         } else {
             injectViaKeyboard(text)
         }
+        return true
     }
 
     // MARK: - CGEvent keyboard simulation
@@ -62,8 +64,10 @@ struct TextInjector {
         keyDown?.post(tap: .cgAnnotatedSessionEventTap)
         keyUp?.post(tap: .cgAnnotatedSessionEventTap)
 
-        // Restore clipboard after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+        // Restore clipboard after a short delay, but only if the user hasn't modified it
+        let changeCountAfterPaste = pasteboard.changeCount
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            guard pasteboard.changeCount == changeCountAfterPaste else { return }
             if let previous = previousContents {
                 pasteboard.clearContents()
                 pasteboard.setString(previous, forType: .string)
