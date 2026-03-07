@@ -1,0 +1,41 @@
+name: AiyoWisper
+options:
+  bundleIdPrefix: com.aiyo
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+packages:
+  WhisperKit:
+    url: https://github.com/argmaxinc/WhisperKit.git
+    from: "0.9.0"
+
+targets:
+  AiyoWisper:
+    type: application
+    platform: macOS
+    sources:
+      - path: AiyoWisper
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
+        ARCHS: arm64
+        SWIFT_STRICT_CONCURRENCY: complete
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Automatic
+        PRODUCT_BUNDLE_IDENTIFIER: com.aiyo.wisper
+        INFOPLIST_FILE: AiyoWisper/Info.plist
+        CODE_SIGN_ENTITLEMENTS: AiyoWisper/AiyoWisper.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - package: WhisperKit
+    entitlements:
+      path: AiyoWisper/AiyoWisper.entitlements
+    info:
+      path: AiyoWisper/Info.plist
+      properties:
+        LSUIElement: true
+        NSMicrophoneUsageDescription: "AIYO Wisper needs microphone access to capture your voice for local speech-to-text transcription. Audio is processed entirely on your device."
