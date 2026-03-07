@@ -3,68 +3,75 @@
 ## Phase 1 — Core Dictation
 
 ### Setup & Infrastructure
-- [ ] Create Xcode project with SwiftUI lifecycle and menu bar app target
-- [ ] Configure Info.plist for microphone and accessibility permissions
-- [ ] Add whisper.cpp as Swift Package Manager dependency
-- [ ] Set up app signing for distribution outside App Store
+- [x] Create Xcode project with SwiftUI lifecycle and menu bar app target
+- [x] Configure Info.plist for microphone and accessibility permissions
+- [x] Add WhisperKit as Swift Package Manager dependency
+- [x] Set up app signing for distribution outside App Store
 - [ ] Create app icon and menu bar icon assets
-- [ ] Configure launch-at-login capability
+- [x] Configure launch-at-login capability
 
 ### Audio Recording
-- [ ] Implement AudioRecorder class using AVFoundation for microphone capture
-- [ ] Handle microphone permission request and denial gracefully
-- [ ] Record audio to temporary file in Whisper-compatible format (16kHz, mono, f32)
-- [ ] Add recording state management (idle, recording, processing)
+- [x] Implement AudioRecorder class using AVFoundation for microphone capture
+- [x] Handle microphone permission request and denial gracefully
+- [x] Record audio in Whisper-compatible format (16kHz, mono, f32) with AVAudioConverter
+- [x] Add recording state management (idle, recording, processing)
 
 ### Whisper Integration
-- [ ] Implement WhisperManager wrapper around whisper.cpp C API
-- [ ] Add model download functionality with progress indicator
-- [ ] Support model selection (tiny, base, small, medium, large)
-- [ ] Store models in Application Support directory
-- [ ] Implement transcription pipeline: audio file to text
-- [ ] Run inference on background thread to avoid UI blocking
+- [x] Implement TranscriptionEngine wrapper around WhisperKit
+- [x] Add model download functionality with progress indicator
+- [x] Support model selection (tiny, base, small, medium, large)
+- [x] Store models in Application Support directory
+- [x] Implement transcription pipeline: audio samples to text
+- [x] Run inference on background thread to avoid UI blocking
 
 ### Text Injection
-- [ ] Implement TextInjector using CGEvent to simulate keyboard input
-- [ ] Handle Accessibility API permission request and checking
-- [ ] Support Unicode characters and special characters
-- [ ] Add clipboard-paste fallback for apps that reject CGEvent input
+- [x] Implement TextInjector using CGEvent to simulate keyboard input
+- [x] Handle Accessibility API permission request and checking
+- [x] Support Unicode characters via keyboardSetUnicodeString (chunked)
+- [x] Add clipboard-paste fallback for terminal apps
 - [ ] Test injection across Safari, VS Code, Slack, Terminal, TextEdit
 
 ### Global Hotkey
-- [ ] Implement HotkeyService for global press-and-hold hotkey registration
-- [ ] Default hotkey: fn key (with option to customize)
-- [ ] Detect key-down to start recording, key-up to stop and transcribe
-- [ ] Prevent hotkey from triggering the focused app's own shortcuts
+- [x] Implement HotkeyService for global press-and-hold hotkey registration
+- [x] Default hotkey: Control key (hold to record, release to transcribe)
+- [x] Detect key-down to start recording, key-up to stop and transcribe
+- [x] Ignore hotkey when other modifiers held (Cmd+C won't trigger)
 
 ### Recording Indicator
-- [ ] Create floating pill overlay showing recording state
-- [ ] Position near cursor or screen corner (configurable)
-- [ ] Show visual feedback: recording animation, processing spinner
-- [ ] Dismiss automatically after text injection completes
+- [x] Create floating NSPanel overlay showing recording state
+- [x] Position at top-center of screen
+- [x] Show visual feedback: pulse animation for recording, spinner for transcribing
+- [x] Dismiss automatically when returning to idle
 
 ### Menu Bar UI
-- [ ] Create MenuBarView with popover showing app status
-- [ ] Add quick controls: enable/disable, current model, recording status
-- [ ] Add "Quit" and "Settings" menu items
+- [x] Create MenuBarView with popover showing app status
+- [x] Add quick controls: model info, recording status, last transcription
+- [x] Add "Quit" and "Settings..." menu items
+- [x] Menu bar icon changes based on status (mic.fill when recording)
 
 ### Settings
-- [ ] Create SettingsView with tabbed preferences window
-- [ ] Hotkey configuration with key capture UI
-- [ ] Model selection with download/delete controls
-- [ ] Launch at login toggle
-- [ ] Recording indicator position preference
+- [x] Create SettingsView with tabbed preferences window
+- [x] Hotkey display (Control hold)
+- [x] Model selection with download/delete controls
+- [x] Launch at login toggle via SMAppService
+- [x] About tab with version info
 
 ### Onboarding
-- [ ] Create OnboardingView for first-launch setup flow
-- [ ] Step 1: Welcome and app description
-- [ ] Step 2: Request microphone permission
-- [ ] Step 3: Request accessibility permission with system instructions
-- [ ] Step 4: Select and download Whisper model
-- [ ] Step 5: Test dictation with guided walkthrough
+- [x] Create OnboardingView for first-launch setup flow
+- [x] Step 1: Welcome and app description
+- [x] Step 2: Request microphone permission
+- [x] Step 3: Request accessibility permission with polling
+- [x] Step 4: Select and download Whisper model
+- [x] Step 5: Ready to go confirmation
 
-#### Done — Phase 1
-_(none yet)_
+### Edge Cases
+- [x] Minimum recording duration guard (< 0.3s ignored)
+- [x] Permission checks before recording (mic + accessibility)
+- [x] Error auto-reset after 3 seconds
+- [x] Empty transcription guard
+- [x] Terminal auto-detect for clipboard fallback
+- [ ] Test long recordings (30s+)
+- [ ] Test rapid press-release behavior
 
 ## Phase 2 — Smart Formatting & Language Detection
 
@@ -87,9 +94,6 @@ _(none yet)_
 - [ ] Allow user to assign profiles to specific apps
 - [ ] Minimal formatting mode for code editors (no auto-punctuation)
 
-#### Done — Phase 2
-_(none yet)_
-
 ## Phase 3 — Command Mode & Voice Shortcuts
 
 ### Command Mode
@@ -106,6 +110,3 @@ _(none yet)_
 - [ ] Match trigger phrases during normal dictation flow
 - [ ] Expand matched shortcuts inline before text injection
 - [ ] Persist shortcuts to disk (JSON or UserDefaults)
-
-#### Done — Phase 3
-_(none yet)_
