@@ -37,7 +37,6 @@
 		4BAC2BE20473E64500652CA8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		5AB9276147FF3D4774A3D586 /* HotkeyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyService.swift; sourceTree = "<group>"; };
 		91BB5BD3889DF1E19B158446 /* AiyoWisperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiyoWisperApp.swift; sourceTree = "<group>"; };
-		9927F555D3052DBB907731CD /* AiyoWisper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AiyoWisper.entitlements; sourceTree = "<group>"; };
 		994DCD537FB0A0D3DB135106 /* SmartFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartFormatter.swift; sourceTree = "<group>"; };
 		A625056815F0721CC6C673E2 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		B4C33A44D0055F30BB8159C6 /* PermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionService.swift; sourceTree = "<group>"; };
@@ -86,7 +85,6 @@
 		51E4055B58C10DF21D9148D2 /* AiyoWisper */ = {
 			isa = PBXGroup;
 			children = (
-				9927F555D3052DBB907731CD /* AiyoWisper.entitlements */,
 				91BB5BD3889DF1E19B158446 /* AiyoWisperApp.swift */,
 				E9AA03911DF98EE733FDC21F /* Assets.xcassets */,
 				4BAC2BE20473E64500652CA8 /* Info.plist */,
