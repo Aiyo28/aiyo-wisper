@@ -15,6 +15,7 @@ final class HotkeyService: @unchecked Sendable {
     private var localMonitor: Any?
 
     func start() {
+        stop()
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             self?.handleFlagsChanged(event)
         }

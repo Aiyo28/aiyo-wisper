@@ -5,6 +5,8 @@
 - [ ] Test text injection across Safari, VS Code, Slack, Terminal, TextEdit
 - [ ] Test long recordings (30s+)
 - [ ] Test rapid press-release behavior
+- [ ] Investigate linter/hook reverting audit fixes (Info.plist, ModelManager, closures, etc.)
+- [x] Code audit: fix concurrency, resource leaks, race conditions (17 issues)
 
 ## Phase 2 — Smart Formatting & Language Detection
 - [ ] SmartFormatter: auto-punctuation, capitalization, filler removal

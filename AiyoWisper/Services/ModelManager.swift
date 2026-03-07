@@ -40,8 +40,9 @@ final class ModelManager {
 
         for i in availableModels.indices {
             let modelId = availableModels[i].id
+            let expectedPrefix = "openai_whisper-\(modelId)"
             availableModels[i].isDownloaded = contents.contains { item in
-                item.hasDirectoryPath && item.lastPathComponent.localizedCaseInsensitiveContains(modelId)
+                item.hasDirectoryPath && item.lastPathComponent.hasPrefix(expectedPrefix)
             }
         }
     }
@@ -78,8 +79,9 @@ final class ModelManager {
             at: modelsDirectory, includingPropertiesForKeys: nil
         ) else { return }
 
+        let expectedPrefix = "openai_whisper-\(modelId)"
         for item in contents where item.hasDirectoryPath {
-            if item.lastPathComponent.localizedCaseInsensitiveContains(modelId) {
+            if item.lastPathComponent.hasPrefix(expectedPrefix) {
                 try fileManager.removeItem(at: item)
             }
         }
@@ -95,8 +97,9 @@ final class ModelManager {
             at: modelsDirectory, includingPropertiesForKeys: nil
         ) else { return nil }
 
+        let expectedPrefix = "openai_whisper-\(modelId)"
         return contents.first { item in
-            item.hasDirectoryPath && item.lastPathComponent.localizedCaseInsensitiveContains(modelId)
+            item.hasDirectoryPath && item.lastPathComponent.hasPrefix(expectedPrefix)
         }
     }
 

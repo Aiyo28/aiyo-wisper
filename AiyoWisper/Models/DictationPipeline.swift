@@ -8,6 +8,7 @@ final class DictationPipeline {
     private let hotkeyService = HotkeyService()
     private let modelManager: ModelManager
     private var recordingStartTime: Date?
+    private var isProcessing = false
 
     init(appState: AppState, modelManager: ModelManager) {
         self.appState = appState
@@ -29,9 +30,9 @@ final class DictationPipeline {
             }
         }
 
-        hotkeyService.start()
         Task {
             await loadSelectedModel()
+            hotkeyService.start()
         }
     }
 
@@ -56,9 +57,11 @@ final class DictationPipeline {
     }
 
     private func startRecording() {
-        guard appState.status == .idle else { return }
+        guard appState.status == .idle, !isProcessing else { return }
+        isProcessing = true
+        defer { if appState.status != .recording { isProcessing = false } }
         guard appState.isModelLoaded else {
-            appState.errorMessage = "No model loaded"
+            appState.errorMessage = "Model is still loading, please wait..."
             return
         }
         guard PermissionService.checkMicrophonePermission() else {
@@ -83,6 +86,7 @@ final class DictationPipeline {
 
     private func stopRecordingAndTranscribe() async {
         guard appState.status == .recording else { return }
+        defer { isProcessing = false }
 
         let duration = recordingStartTime.map { Date().timeIntervalSince($0) } ?? 0
         let samples = audioRecorder.stopRecording()
@@ -104,7 +108,15 @@ final class DictationPipeline {
 
             appState.status = .injecting
             appState.lastTranscription = text
-            TextInjector.inject(text)
+            let injected = await Task.detached {
+                TextInjector.inject(text)
+            }.value
+            if !injected {
+                appState.status = .error
+                appState.errorMessage = "Accessibility permission not granted"
+                scheduleErrorReset()
+                return
+            }
             appState.status = .idle
         } catch {
             appState.status = .error

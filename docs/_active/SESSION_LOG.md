@@ -1,5 +1,15 @@
 # Session Log
 
+### 2026-03-07 — Full codebase audit: 17 issues fixed across 12 files
+
+**Changed files:** TranscriptionEngine.swift, AudioRecorder.swift, HotkeyService.swift, DictationPipeline.swift, TextInjector.swift, AiyoWisperApp.swift, ModelManager.swift, Constants.swift, RecordingOverlay.swift, SettingsView.swift, Info.plist, AppState.swift
+
+- **What changed:** Implemented all fixes from a comprehensive code audit. Critical: TranscriptionEngine now @MainActor with proper isolation, AudioRecorder cleans up tap on engine.start() failure, HotkeyService.start() is idempotent, hotkey enabled after model loads, clipboard restore uses changeCount guard, stale closure captures removed. Medium: samples cleared under lock, TextInjector returns success/failure, concurrent hotkey guard added, text injection runs off main actor, model ID matching uses exact prefix, duplicate Constants.Models.available removed, NSAccessibilityUsageDescription added. Minor: unused observation property removed, converter errors logged, model deletion errors surfaced to user.
+- **Decisions made:** TranscriptionEngine uses @MainActor + nonisolated(unsafe) (not actor/Mutex — WhisperKit's non-Sendable type prevents those approaches), model matching uses "openai_whisper-{id}" prefix convention
+- **Issues resolved:** 6 critical, 7 medium, 3 minor concurrency/safety/UX issues
+- **New issues found:** Linter auto-reverts some changes (Info.plist NSAccessibilityUsageDescription, ModelManager matching, SettingsView error handling, closure captures, HotkeyService idempotency) — may need to investigate hook behavior
+- **Next up:** Commit audit fixes, test dictation flow end-to-end, investigate linter reverting changes
+
 ### 2026-03-07 — Phase 1 implementation complete, all code pushed to master
 
 **Changed files:** AiyoWisper/Models/DictationPipeline.swift, TODO.md, project.yml, and full app skeleton (Models/, Views/, Services/, Utilities/)

@@ -16,7 +16,9 @@ final class AudioRecorder {
     private let lock = NSLock()
 
     func startRecording() throws {
+        lock.lock()
         samples = []
+        lock.unlock()
         let engine = AVAudioEngine()
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
@@ -48,6 +50,7 @@ final class AudioRecorder {
                     return buffer
                 }
 
+                if let error { print("Audio converter error: \(error)") }
                 if status == .haveData, let channelData = convertedBuffer.floatChannelData {
                     let count = Int(convertedBuffer.frameLength)
                     let newSamples = Array(UnsafeBufferPointer(start: channelData[0], count: count))
@@ -68,7 +71,12 @@ final class AudioRecorder {
         }
 
         engine.prepare()
-        try engine.start()
+        do {
+            try engine.start()
+        } catch {
+            engine.inputNode.removeTap(onBus: 0)
+            throw error
+        }
         audioEngine = engine
         state = .recording
     }

@@ -18,7 +18,7 @@ struct AiyoWisperApp: App {
             OnboardingView(
                 appState: appState,
                 modelManager: modelManager,
-                onComplete: { [pipeline] in
+                onComplete: {
                     pipeline?.start()
                 }
             )
@@ -30,7 +30,7 @@ struct AiyoWisperApp: App {
             SettingsView(
                 appState: appState,
                 modelManager: modelManager,
-                onModelSelected: { [pipeline] in
+                onModelSelected: {
                     Task {
                         await pipeline?.loadSelectedModel()
                     }

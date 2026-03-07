@@ -1,5 +1,12 @@
 # Decisions
 
+### 2026-03-07 — Code audit concurrency strategy
+
+- **TranscriptionEngine** uses `@MainActor` + `nonisolated(unsafe)` for WhisperKit property — actor isolation was rejected because WhisperKit isn't Sendable, Mutex failed for the same reason, NSLock is unavailable in async contexts. `@MainActor` serializes all state access; `nonisolated(unsafe)` allows crossing isolation for WhisperKit's nonisolated async transcribe API.
+- **Model ID matching** uses exact prefix `"openai_whisper-{modelId}"` instead of loose `localizedCaseInsensitiveContains` — prevents "tiny" matching "tiny.en" or other false positives.
+- **TextInjector clipboard restore** checks `NSPasteboard.changeCount` before restoring — prevents overwriting user clipboard if they copied during the 500ms restore window.
+- **Text injection runs off main actor** via `Task.detached` — prevents `usleep()` calls from blocking UI during keyboard simulation.
+
 ### 2026-03-07 — WhisperKit over whisper.cpp, XcodeGen project setup
 
 - **WhisperKit** chosen over whisper.cpp — pure Swift/CoreML, Neural Engine acceleration, no C++ bridging needed
