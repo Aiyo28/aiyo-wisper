@@ -6,13 +6,19 @@ enum DictationStatus: String {
     case transcribing
     case injecting
     case error
+    case commandRecording
+    case commandTranscribing
+    case commandProcessing
+    case commandInjecting
 }
 
 @Observable
 final class AppState {
     var status: DictationStatus = .idle
     var lastTranscription: String = ""
+    var lastCommand: String = ""
     var errorMessage: String?
+    var isCommandMode: Bool = false
     var isModelLoaded: Bool = false
     var modelLoadProgress: Double = 0
     var isDownloadingModel: Bool = false
@@ -34,4 +40,15 @@ final class AppState {
 
     @ObservationIgnored
     @AppStorage(Constants.UserDefaultsKeys.minimalFormattingForEditors) var minimalFormattingForEditors: Bool = true
+
+    @ObservationIgnored
+    @AppStorage(Constants.UserDefaultsKeys.llmEndpoint) var llmEndpoint: String = Constants.LLM.defaultEndpoint
+
+    @ObservationIgnored
+    @AppStorage(Constants.UserDefaultsKeys.llmModel) var llmModel: String = Constants.LLM.defaultModel
+
+    @ObservationIgnored
+    @AppStorage(Constants.UserDefaultsKeys.commandModeEnabled) var commandModeEnabled: Bool = true
+
+    var isRecordingAny: Bool { status == .recording || status == .commandRecording }
 }

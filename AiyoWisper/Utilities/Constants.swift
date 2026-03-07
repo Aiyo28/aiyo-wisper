@@ -38,6 +38,9 @@ enum Constants {
         static let preferredLanguage = "preferredLanguage"
         static let autoDetectLanguage = "autoDetectLanguage"
         static let minimalFormattingForEditors = "minimalFormattingForEditors"
+        static let llmEndpoint = "llmEndpoint"
+        static let llmModel = "llmModel"
+        static let commandModeEnabled = "commandModeEnabled"
     }
 
     enum TextInjection {
@@ -84,6 +87,17 @@ enum Constants {
         ]
 
         static let smallModels: Set<String> = ["tiny", "base"]
+    }
+
+    enum LLM {
+        static let defaultEndpoint = "http://localhost:11434/v1"
+        static let defaultModel = "llama3.2:3b"
+        static let requestTimeout: TimeInterval = 30
+    }
+
+    enum CommandMode {
+        static let clipboardReadDelay: UInt32 = 100_000 // microseconds
+        static let clipboardRestoreDelay: TimeInterval = 0.5
     }
 
     enum Language {
