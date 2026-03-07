@@ -65,6 +65,10 @@ final class DictationPipeline {
             appState.errorMessage = "Microphone permission not granted"
             return
         }
+        guard PermissionService.checkAccessibilityPermission() else {
+            appState.errorMessage = "Accessibility permission not granted"
+            return
+        }
 
         do {
             try audioRecorder.startRecording()
