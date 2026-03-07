@@ -1,5 +1,14 @@
 # Decisions
 
+### 2026-03-07 — WhisperKit over whisper.cpp, XcodeGen project setup
+
+- **WhisperKit** chosen over whisper.cpp — pure Swift/CoreML, Neural Engine acceleration, no C++ bridging needed
+- **XcodeGen** for project generation — `project.yml` -> `.xcodeproj`, avoids merge conflicts on project files
+- **Control key** as hold-to-record hotkey (changed from fn) — standard modifier, detected via `NSEvent.addGlobalMonitorForEvents(.flagsChanged)`
+- **SMAppService** for launch-at-login — native macOS API, no third-party dependency
+- **No App Sandbox** — required for CGEvent text injection and global hotkey monitoring
+- **Entitlements excluded from sources** in project.yml to avoid "modified during build" Xcode error
+
 ### 2026-03-07 — Core architecture and stack decisions
 
 - **Stack:** Swift + SwiftUI + whisper.cpp — native macOS for best OS integration and performance
