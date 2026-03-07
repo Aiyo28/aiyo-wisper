@@ -87,6 +87,10 @@ struct MenuBarView: View {
         case .transcribing: .orange
         case .injecting: .blue
         case .error: .red
+        case .commandRecording: .purple
+        case .commandTranscribing: .purple
+        case .commandProcessing: .purple
+        case .commandInjecting: .purple
         }
     }
 
@@ -97,6 +101,10 @@ struct MenuBarView: View {
         case .transcribing: "Transcribing..."
         case .injecting: "Injecting text..."
         case .error: "Error"
+        case .commandRecording: "Command Mode..."
+        case .commandTranscribing: "Transcribing command..."
+        case .commandProcessing: "Processing..."
+        case .commandInjecting: "Injecting..."
         }
     }
 }
