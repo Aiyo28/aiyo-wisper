@@ -15,6 +15,7 @@ final class RecordingOverlay {
         guard let appState else { return }
         withObservationTracking {
             _ = appState.status
+            _ = appState.detectedLanguage
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 self?.updateVisibility()
@@ -40,13 +41,15 @@ final class RecordingOverlay {
 
         guard let panel else { return }
 
-        let hostingView = NSHostingView(rootView: RecordingOverlayContent(status: status))
-        hostingView.frame = NSRect(x: 0, y: 0, width: 180, height: 44)
+        let hostingView = NSHostingView(
+            rootView: RecordingOverlayContent(status: status, detectedLanguage: appState?.detectedLanguage)
+        )
+        hostingView.frame = NSRect(x: 0, y: 0, width: 200, height: 44)
         panel.contentView = hostingView
 
         if let screen = NSScreen.main {
             let screenFrame = screen.visibleFrame
-            let x = screenFrame.midX - 90
+            let x = screenFrame.midX - 100
             let y = screenFrame.maxY - 60
             panel.setFrameOrigin(NSPoint(x: x, y: y))
         }
@@ -78,6 +81,7 @@ final class RecordingOverlay {
 
 private struct RecordingOverlayContent: View {
     let status: DictationStatus
+    var detectedLanguage: String?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -92,9 +96,16 @@ private struct RecordingOverlayContent: View {
             } else {
                 ProgressView()
                     .controlSize(.small)
-                Text("Transcribing...")
-                    .font(.caption)
-                    .fontWeight(.medium)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Transcribing...")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    if let lang = detectedLanguage {
+                        Text(lang.uppercased())
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
         .padding(.horizontal, 14)
