@@ -6,6 +6,7 @@ struct AiyoWisperApp: App {
     @State private var modelManager = ModelManager()
     @State private var pipeline: DictationPipeline?
     @State private var overlay = RecordingOverlay()
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         MenuBarExtra("AIYO Wisper", systemImage: menuBarIcon) {
@@ -14,13 +15,27 @@ struct AiyoWisperApp: App {
         .menuBarExtraStyle(.window)
 
         Window("Welcome to AIYO Wisper", id: "onboarding") {
-            OnboardingView(appState: appState, modelManager: modelManager)
+            OnboardingView(
+                appState: appState,
+                modelManager: modelManager,
+                onComplete: { [pipeline] in
+                    pipeline?.start()
+                }
+            )
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
 
         Settings {
-            SettingsView(appState: appState, modelManager: modelManager)
+            SettingsView(
+                appState: appState,
+                modelManager: modelManager,
+                onModelSelected: { [pipeline] in
+                    Task {
+                        await pipeline?.loadSelectedModel()
+                    }
+                }
+            )
         }
     }
 
@@ -44,6 +59,10 @@ struct AiyoWisperApp: App {
         if state.isOnboarded {
             DispatchQueue.main.async {
                 dictationPipeline.start()
+            }
+        } else {
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
             }
         }
     }

@@ -3,6 +3,7 @@ import SwiftUI
 struct OnboardingView: View {
     let appState: AppState
     let modelManager: ModelManager
+    var onComplete: (() -> Void)?
     @State private var currentStep = 0
     @State private var permissionService = PermissionService()
     @State private var accessibilityTimer: Timer?
@@ -45,6 +46,7 @@ struct OnboardingView: View {
                 Button(currentStep == 4 ? "Finish" : "Continue") {
                     if currentStep == 4 {
                         appState.isOnboarded = true
+                        onComplete?()
                         dismissWindow(id: "onboarding")
                     } else {
                         currentStep += 1
