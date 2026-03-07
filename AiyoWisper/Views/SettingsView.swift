@@ -16,6 +16,10 @@ struct SettingsView: View {
                 HotkeyTab()
             }
 
+            Tab("Formatting", systemImage: "textformat") {
+                FormattingTab(appState: appState)
+            }
+
             Tab("Models", systemImage: "cpu") {
                 ModelsTab(appState: appState, modelManager: modelManager, onModelSelected: onModelSelected)
             }
@@ -66,6 +70,60 @@ private struct HotkeyTab: View {
                         .padding(.vertical, 4)
                         .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
                 }
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Formatting
+
+private struct FormattingTab: View {
+    let appState: AppState
+    @State private var preferredLanguage: String
+    @State private var autoDetect: Bool
+    @State private var minimalFormatting: Bool
+
+    init(appState: AppState) {
+        self.appState = appState
+        _preferredLanguage = State(initialValue: appState.preferredLanguage)
+        _autoDetect = State(initialValue: appState.autoDetectLanguage)
+        _minimalFormatting = State(initialValue: appState.minimalFormattingForEditors)
+    }
+
+    var body: some View {
+        Form {
+            Section("Language") {
+                Picker("Preferred language", selection: $preferredLanguage) {
+                    ForEach(Constants.Language.available, id: \.code) { lang in
+                        Text(lang.name).tag(lang.code)
+                    }
+                }
+                .onChange(of: preferredLanguage) { _, newValue in
+                    appState.preferredLanguage = newValue
+                }
+
+                Toggle("Auto-detect language", isOn: $autoDetect)
+                    .onChange(of: autoDetect) { _, newValue in
+                        appState.autoDetectLanguage = newValue
+                    }
+
+                if autoDetect {
+                    Text("Whisper will detect the spoken language automatically. Works best with larger models.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section("Formatting") {
+                Toggle("Minimal formatting for code editors", isOn: $minimalFormatting)
+                    .onChange(of: minimalFormatting) { _, newValue in
+                        appState.minimalFormattingForEditors = newValue
+                    }
+
+                Text("Skips punctuation and capitalization when dictating into VS Code, Xcode, Terminal, and other code editors.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
