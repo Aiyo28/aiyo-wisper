@@ -1,7 +1,8 @@
 ## Continue
-- E2E test command mode with Ollama running locally
-- Test shortcut phrase expansion end-to-end
-- Notarize DMG and test fresh install on clean Mac
+- Test Command Mode with Ollama + new presets (verify repetition loop is fixed)
+- E2E test shortcut phrase expansion
+- Test settings UI on fresh install (defaults, Ollama not running state)
+- Notarize DMG and test on clean Mac
 
 ## Decide
 - Nothing pending
@@ -9,4 +10,4 @@
 ## Blocked
 - Nothing blocked
 
-Updated: 2026-03-11
+Updated: 2026-03-23
