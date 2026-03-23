@@ -20,13 +20,20 @@ final class TranscriptionEngine: @unchecked Sendable {
         isModelLoaded = true
     }
 
-    func transcribe(audioSamples: [Float], language: String?) async throws -> TranscriptionResult {
+    func transcribe(audioSamples: [Float], language: String?, vocabularyWords: [String] = []) async throws -> TranscriptionResult {
         guard let whisperKit else {
             throw TranscriptionError.modelNotLoaded
         }
 
+        var promptTokens: [Int]?
+        if !vocabularyWords.isEmpty, let tokenizer = whisperKit.tokenizer {
+            promptTokens = vocabularyWords.flatMap { tokenizer.encode(text: $0) }
+        }
+
         let options = DecodingOptions(
-            language: language
+            language: language,
+            detectLanguage: language == nil ? true : nil,
+            promptTokens: promptTokens
         )
 
         let results = try await whisperKit.transcribe(audioArray: audioSamples, decodeOptions: options)

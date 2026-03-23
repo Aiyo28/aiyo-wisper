@@ -23,7 +23,7 @@ struct CommandProcessor: Sendable {
 
     // MARK: - Processing
 
-    func process(command: String, selectedText: String) async throws -> String {
+    func process(command: String, selectedText: String, parameters: LLMParameters = LLMParameters()) async throws -> String {
         let userPrompt = """
             Command: \(command)
 
@@ -33,7 +33,8 @@ struct CommandProcessor: Sendable {
 
         let result = try await llmService.complete(
             systemPrompt: Self.systemPrompt,
-            userPrompt: userPrompt
+            userPrompt: userPrompt,
+            parameters: parameters
         )
 
         return stripWrappingQuotes(result.trimmingCharacters(in: .whitespacesAndNewlines))

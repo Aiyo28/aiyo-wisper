@@ -29,6 +29,7 @@ final class HotkeyService: @unchecked Sendable {
             self?.handleFlagsChanged(event)
             return event
         }
+        print("[Hotkey] Service started — global monitor: \(globalMonitor != nil), local monitor: \(localMonitor != nil)")
     }
 
     func stop() {
@@ -54,10 +55,12 @@ final class HotkeyService: @unchecked Sendable {
         if controlPressed && !optionPressed && !commandPressed && !shiftPressed {
             if !isHotkeyPressed {
                 isHotkeyPressed = true
+                print("[Hotkey] Control key down detected")
                 onKeyDown?()
             }
         } else if !controlPressed && isHotkeyPressed {
             isHotkeyPressed = false
+            print("[Hotkey] Control key up detected")
             onKeyUp?()
         }
 

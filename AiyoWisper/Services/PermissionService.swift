@@ -1,4 +1,4 @@
-import AVFoundation
+import AVFAudio
 import Cocoa
 import Foundation
 
@@ -6,28 +6,47 @@ import Foundation
 final class PermissionService {
     var hasMicrophoneAccess = false
     var hasAccessibilityAccess = false
+    var microphoneWasDenied = false
 
     func refreshPermissions() {
-        hasMicrophoneAccess = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        let micPermission = AVAudioApplication.shared.recordPermission
+        hasMicrophoneAccess = micPermission == .granted
+        microphoneWasDenied = micPermission == .denied
         hasAccessibilityAccess = AXIsProcessTrusted()
     }
 
     func requestMicrophonePermission() async {
-        hasMicrophoneAccess = await AVCaptureDevice.requestAccess(for: .audio)
+        let granted = await AVAudioApplication.requestRecordPermission()
+        hasMicrophoneAccess = granted
+        microphoneWasDenied = !granted && AVAudioApplication.shared.recordPermission == .denied
+    }
+
+    func openMicrophoneSettings() {
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!
+        NSWorkspace.shared.open(url)
     }
 
     func openAccessibilitySettings() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
-        NSWorkspace.shared.open(url)
+        Self.openAccessibilitySettings()
     }
 
     // MARK: - Static convenience for pipeline use (nonisolated for cross-actor access)
 
+    nonisolated static func openAccessibilitySettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+    }
+
     nonisolated static func checkMicrophonePermission() -> Bool {
-        AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        AVAudioApplication.shared.recordPermission == .granted
     }
 
     nonisolated static func checkAccessibilityPermission() -> Bool {
         AXIsProcessTrusted()
+    }
+
+    /// Checks accessibility and shows the system prompt dialog if not granted.
+    nonisolated static func promptAccessibilityPermission() -> Bool {
+        let options = ["AXTrustedCheckOptionPrompt" as CFString: true] as CFDictionary
+        return AXIsProcessTrustedWithOptions(options)
     }
 }

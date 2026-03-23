@@ -1,79 +1,76 @@
-# CLAUDE.md
+# AIYO Wisper — Agent Protocol
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Context
 
-## Project Overview
+macOS menu bar voice-to-text app. Hold hotkey → speak → text appears at cursor. Local-only via WhisperKit.
 
-AIYO Wisper is a native macOS menu bar app for voice-to-text dictation. Users hold a global hotkey (Control), speak, and transcribed text appears wherever their cursor is — processed entirely locally via WhisperKit. Free, open-source, no cloud dependency.
+| Component | Stack | Constraints |
+|-----------|-------|-------------|
+| App | Swift 6, SwiftUI, macOS 15+ | ARM64 only. No App Sandbox (Accessibility API). |
+| STT | WhisperKit (CoreML/Neural Engine) | Models in `~/Library/Application Support/AiyoWisper/Models/` |
+| Text inject | CGEvent `keyboardSetUnicodeString` | Clipboard fallback for terminals |
+| Build | XcodeGen (`project.yml`) | Regenerate: `xcodegen generate` |
+| Distribution | DMG / GitHub releases | No App Store (Accessibility prevents it) |
 
-## Tech Stack
+## Session Protocol
 
-- **Language:** Swift 6 with strict concurrency (macOS 15.0+, Apple Silicon only)
-- **UI:** SwiftUI with `MenuBarExtra` lifecycle (no `WindowGroup`)
-- **Speech-to-Text:** WhisperKit (pure Swift/CoreML, Neural Engine acceleration)
-- **Audio:** AVAudioEngine for microphone capture (16kHz mono Float32)
-- **Text Injection:** CGEvent `keyboardSetUnicodeString` (clipboard-paste fallback for terminals)
-- **Build:** XcodeGen project (`project.yml` → `AiyoWisper.xcodeproj`)
-- **Distribution:** DMG / GitHub releases (no App Store — Accessibility API prevents it)
+1. **Start:** Read `NEXT.md` (session continuity) + `docs/_context/BRIEF.md` (L1 context, when created)
+2. **Fallback (until BRIEF.md exists):** Read `Projects/aiyo-wisper/MASTERPLAN.md` from vault
+3. **Check:** Read TODO from vault if task work planned
+4. **End:** `session-complete` skill auto-runs
+
+## Where to Find Things
+
+| Topic | Location |
+|-------|----------|
+| Masterplan + phases | Vault: `Projects/aiyo-wisper/MASTERPLAN.md` |
+| TODO | Vault: `Projects/aiyo-wisper/TODO.md` |
+| Session log + decisions | Vault: `Projects/aiyo-wisper/sessions/` |
+| Implementation plans | Vault: `Projects/aiyo-wisper/plans/` |
+
+## Rules
+
+- **Local-only:** No audio or text ever leaves the device.
+- **TDD:** Vertical slices. Swift Testing (`@Test`, `#expect`).
+- **Idle memory:** Must stay under 50 MB.
+- **Latency:** < 3s (tiny model), < 5s (large model).
+
+## Critical Gotchas
+
+1. **Strict concurrency:** `SWIFT_STRICT_CONCURRENCY = complete`. All `@MainActor` boundaries explicit.
+2. **XcodeGen:** Run `xcodegen generate` after any `project.yml` change.
+3. **Entitlements:** `com.apple.security.device.audio-input` + no sandbox. Hardened runtime ON.
+4. **TCC permissions:** App needs BOTH Accessibility AND Input Monitoring. After `tccutil reset`, re-grant manually.
+5. **Input Monitoring:** Separate from Accessibility — required for global keystroke detection.
+6. **Clipboard guard:** `TextInjector` falls back to clipboard paste for terminals. Must restore original clipboard.
+7. **`@MainActor` isolation:** Views + any UI-touching code. `WhisperManager` is `@MainActor`.
+8. **Model IDs:** WhisperKit model names must match HuggingFace repo naming exactly.
+9. **Audio format:** 16kHz mono Float32 — WhisperKit requires this exact format.
+10. **MenuBarExtra lifecycle:** No `WindowGroup` — app lifecycle via `MenuBarExtra` only.
 
 ## Build & Run
 
 ```bash
-# Regenerate Xcode project (after modifying project.yml)
-xcodegen generate   # or: /tmp/xcodegen/xcodegen/bin/xcodegen generate
-
-# Open in Xcode
-open AiyoWisper.xcodeproj
-
-# Build from CLI
-xcodebuild -project AiyoWisper.xcodeproj -scheme AiyoWisper -destination "platform=macOS,arch=arm64" build
+xcodegen generate
+open AiyoWisper.xcodeproj   # Build via Xcode (Cmd+R)
 ```
 
-Build and run via Xcode (Cmd+R). The app requires:
-- **Microphone permission** — for audio capture
-- **Accessibility permission** — for global hotkey registration and text injection via CGEvent
+Requires: Microphone + Accessibility permissions in System Settings.
 
-## Architecture
+## Effort Calibration
 
-The app follows a layered architecture with clear separation:
+| Level | Scope | Response | Subagents |
+|-------|-------|----------|-----------|
+| TRIVIAL | 1 file, obvious | Act. No preamble. | `haiku` |
+| STANDARD | Clear spec, 2-4 files | Milestones only. | `sonnet` |
+| COMPLEX | Architectural, tradeoffs | Think first. 1 question max. | `opus` |
+| DEEP | Security, perf, novel | Full depth. Suggest opus if not already. | `opus` |
 
-- **Models/** — Core business logic: `WhisperManager` (WhisperKit wrapper), `TranscriptionEngine` (model load + transcribe), `AudioRecorder` (AVAudioEngine capture to 16kHz mono f32), `TextInjector` (CGEvent keyboard simulation), `DictationPipeline` (orchestrator), `SmartFormatter` (Phase 2), `CommandProcessor` (Phase 3), `ShortcutManager` (Phase 3)
-- **Views/** — SwiftUI views: `MenuBarView` (popover), `SettingsView` (preferences), `RecordingIndicator` (floating pill overlay), `OnboardingView` (first-launch permissions + model download)
-- **Services/** — System integration: `HotkeyService` (global hotkey registration), `PermissionService` (mic + accessibility permission flow), `ModelManager` (Whisper model download/selection/storage in Application Support)
-- **Utilities/** — Shared constants
+**Act** when unambiguous. **Ask** only for destructive actions or genuine ambiguity.
 
-### Key Data Flow
+## Anti-Loop
 
-1. `HotkeyService` detects Control key-down → `AudioRecorder` starts capturing (AVAudioEngine tap)
-2. Control key-up → `AudioRecorder` stops → `[Float]` samples passed to `TranscriptionEngine`
-3. `TranscriptionEngine` runs WhisperKit inference (CoreML/Neural Engine) → raw text
-4. `TextInjector` types result into focused app via CGEvent (or clipboard fallback for terminals)
-
-### Command Mode (Phase 3)
-
-Separate hotkey → record voice command → read highlighted text via Accessibility API → transform with local LLM → replace highlighted text.
-
-## Development Phases
-
-The project is built in 3 phases (see MASTERPLAN.md for full details):
-1. **Core Dictation** — hotkey, recording, transcription, text injection (current phase)
-2. **Smart Formatting** — punctuation, capitalization, filler removal, language detection
-3. **Command Mode & Voice Shortcuts** — text transformation, trigger phrase expansion
-
-## Key Constraints
-
-- **Local-only processing** — no audio or text ever leaves the device
-- **Whisper models** stored in `~/Library/Application Support/AiyoWisper/Models/`, sizes range from 75 MB (tiny) to 3 GB (large)
-- **Whisper inference** should use GPU/Neural Engine when available
-- **Idle memory** must stay under 50 MB
-- **Transcription latency target:** < 3s for tiny model, < 5s for large model
-
-## Decisions Made
-
-- **WhisperKit** over whisper.cpp — pure Swift/CoreML, Neural Engine acceleration, built-in model download, no C++ bridging
-- **Hold Control key** to record — standard modifier key, detected via `NSEvent.addGlobalMonitorForEvents(.flagsChanged)`
-- **SMAppService** for launch-at-login — native macOS API, no third-party dependency
-- **No App Sandbox** — required for Accessibility API (CGEvent, AXIsProcessTrusted)
+Same error 3x → **STOP**. Verify with user. Write happy path only (<20 lines).
 
 ## Open Decisions
 

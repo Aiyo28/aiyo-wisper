@@ -1,3 +1,4 @@
+import AVFAudio
 import Foundation
 
 @MainActor
@@ -9,14 +10,16 @@ final class DictationPipeline {
     private let modelManager: ModelManager
     private let smartFormatter = SmartFormatter()
     private let shortcutManager: ShortcutManager
+    private let dictionaryManager: DictionaryManager
     private var commandProcessor: CommandProcessor?
     private var recordingStartTime: Date?
     private var isProcessing = false
 
-    init(appState: AppState, modelManager: ModelManager, shortcutManager: ShortcutManager) {
+    init(appState: AppState, modelManager: ModelManager, shortcutManager: ShortcutManager, dictionaryManager: DictionaryManager) {
         self.appState = appState
         self.modelManager = modelManager
         self.shortcutManager = shortcutManager
+        self.dictionaryManager = dictionaryManager
     }
 
     func start() {
@@ -52,7 +55,9 @@ final class DictationPipeline {
 
         Task {
             await loadSelectedModel()
+            await ensurePermissions()
             hotkeyService.start()
+            print("[Pipeline] Started — model loaded: \(appState.isModelLoaded), accessibility: \(PermissionService.checkAccessibilityPermission())")
         }
     }
 
@@ -68,7 +73,7 @@ final class DictationPipeline {
         }
 
         do {
-            try await transcriptionEngine.loadModel(path: modelPath.path())
+            try await transcriptionEngine.loadModel(path: modelPath.path)
             appState.isModelLoaded = true
         } catch {
             appState.isModelLoaded = false
@@ -77,7 +82,11 @@ final class DictationPipeline {
     }
 
     private func startRecording() {
-        guard appState.status == .idle, !isProcessing else { return }
+        print("[Pipeline] startRecording called — status: \(appState.status), isProcessing: \(isProcessing)")
+        guard appState.status == .idle, !isProcessing else {
+            print("[Pipeline] startRecording blocked — status: \(appState.status), isProcessing: \(isProcessing)")
+            return
+        }
         isProcessing = true
         defer { if appState.status != .recording { isProcessing = false } }
         guard appState.isModelLoaded else {
@@ -86,12 +95,17 @@ final class DictationPipeline {
         }
         guard PermissionService.checkMicrophonePermission() else {
             appState.errorMessage = "Microphone permission not granted"
+            scheduleErrorReset()
             return
         }
         guard PermissionService.checkAccessibilityPermission() else {
-            appState.errorMessage = "Accessibility permission not granted"
+            appState.errorMessage = "Accessibility permission not working — if already enabled, toggle it OFF then ON in System Settings → Privacy & Security → Accessibility"
+            PermissionService.openAccessibilitySettings()
+            startAccessibilityPolling()
             return
         }
+
+        appState.errorMessage = nil
 
         do {
             try audioRecorder.startRecording()
@@ -106,6 +120,7 @@ final class DictationPipeline {
 
     private func stopRecordingAndTranscribe() async {
         guard appState.status == .recording else { return }
+        defer { isProcessing = false }
 
         let duration = recordingStartTime.map { Date().timeIntervalSince($0) } ?? 0
         let samples = audioRecorder.stopRecording()
@@ -119,7 +134,11 @@ final class DictationPipeline {
 
         do {
             let language: String? = appState.autoDetectLanguage ? nil : appState.preferredLanguage
-            let result = try await transcriptionEngine.transcribe(audioSamples: samples, language: language)
+            let result = try await transcriptionEngine.transcribe(
+                audioSamples: samples,
+                language: language,
+                vocabularyWords: dictionaryManager.vocabularyWords
+            )
 
             appState.detectedLanguage = result.language
 
@@ -136,11 +155,13 @@ final class DictationPipeline {
                 return
             }
 
-            let expanded = shortcutManager.expand(formatted)
+            let corrected = dictionaryManager.applyCorrections(formatted)
+            let expanded = shortcutManager.expand(corrected)
 
             appState.status = .injecting
             appState.lastTranscription = expanded
-            TextInjector.inject(expanded)
+            appState.addTranscription(expanded, isCommand: false)
+            TextInjector.inject(expanded, charByChar: appState.characterByCharacterMode)
             appState.status = .idle
         } catch {
             appState.status = .error
@@ -169,7 +190,11 @@ final class DictationPipeline {
     // MARK: - Command Mode
 
     private func startCommandRecording() {
-        guard appState.status == .idle, !isProcessing else { return }
+        print("[Pipeline] startCommandRecording called — status: \(appState.status), isProcessing: \(isProcessing)")
+        guard appState.status == .idle, !isProcessing else {
+            print("[Pipeline] startCommandRecording blocked — status: \(appState.status), isProcessing: \(isProcessing)")
+            return
+        }
         guard appState.commandModeEnabled else { return }
         guard commandProcessor != nil else {
             appState.errorMessage = "Command mode requires LLM settings to be configured"
@@ -183,12 +208,17 @@ final class DictationPipeline {
         }
         guard PermissionService.checkMicrophonePermission() else {
             appState.errorMessage = "Microphone permission not granted"
+            scheduleErrorReset()
             return
         }
         guard PermissionService.checkAccessibilityPermission() else {
-            appState.errorMessage = "Accessibility permission not granted"
+            appState.errorMessage = "Accessibility permission not working — if already enabled, toggle it OFF then ON in System Settings → Privacy & Security → Accessibility"
+            PermissionService.openAccessibilitySettings()
+            startAccessibilityPolling()
             return
         }
+
+        appState.errorMessage = nil
 
         do {
             try audioRecorder.startRecording()
@@ -251,7 +281,7 @@ final class DictationPipeline {
                 return
             }
 
-            let transformed = try await processor.process(command: result.text, selectedText: selectedText)
+            let transformed = try await processor.process(command: result.text, selectedText: selectedText, parameters: appState.llmParameters)
 
             guard !transformed.isEmpty else {
                 appState.status = .idle
@@ -263,6 +293,7 @@ final class DictationPipeline {
             appState.status = .commandInjecting
             TextInjector.replaceSelection(transformed)
             appState.lastTranscription = transformed
+            appState.addTranscription(transformed, isCommand: true)
             appState.status = .idle
             appState.isCommandMode = false
             isProcessing = false
@@ -272,6 +303,28 @@ final class DictationPipeline {
             appState.isCommandMode = false
             isProcessing = false
             scheduleErrorReset()
+        }
+    }
+
+    private func ensurePermissions() async {
+        if !PermissionService.checkMicrophonePermission() {
+            await AVAudioApplication.requestRecordPermission()
+        }
+        if !PermissionService.promptAccessibilityPermission() {
+            appState.errorMessage = "Accessibility permission not working — if already enabled, toggle it OFF then ON in System Settings → Privacy & Security → Accessibility"
+            PermissionService.openAccessibilitySettings()
+            startAccessibilityPolling()
+            print("[Pipeline] WARNING: Accessibility not granted — hotkeys will not work")
+        }
+    }
+
+    private func startAccessibilityPolling() {
+        Task { @MainActor [weak self] in
+            while let self, !PermissionService.checkAccessibilityPermission() {
+                try? await Task.sleep(for: .seconds(2))
+            }
+            guard let self else { return }
+            self.appState.errorMessage = nil
         }
     }
 
