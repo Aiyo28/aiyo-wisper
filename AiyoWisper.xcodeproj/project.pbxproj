@@ -10,44 +10,71 @@
 		08567F290C53C6F08D86754C /* PermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C33A44D0055F30BB8159C6 /* PermissionService.swift */; };
 		0994BFC5A569D4C617BE4B20 /* ShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9501A0A341074F09308B3E9 /* ShortcutManager.swift */; };
 		0A914852748592431DF5C920 /* ModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 254BE7E8F52D4EF8FC2219F6 /* ModelManager.swift */; };
+		2298D37DF24C598D5E7C8B30 /* LLMModelInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26F7FB8719155C05ED7EB41B /* LLMModelInfo.swift */; };
 		48A3779CC14CFA7E8C67F1B1 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 9AF4B98FF219E614181A668B /* WhisperKit */; };
 		4B9744109DC20F07B00E3F4E /* AiyoWisperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91BB5BD3889DF1E19B158446 /* AiyoWisperApp.swift */; };
 		612A94A51030D4C383E79A1C /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB93F2DC13D400BE7BA2F459 /* Constants.swift */; };
 		6155B5AE3BED94700DCC5ECD /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A625056815F0721CC6C673E2 /* AppState.swift */; };
 		672930A6F99F31001B725781 /* DictationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = C948B47A2217EE8E08D3E707 /* DictationPipeline.swift */; };
 		683D66FEE9D824DAE4995522 /* LLMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238C425E081DC012B7C57E6C /* LLMService.swift */; };
+		70A786EA32A4793B0C2BEF35 /* LLMModelInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26488AB07E46B331763738A5 /* LLMModelInfoTests.swift */; };
+		72621FBFCF1E7F74E736AA3C /* LLMParametersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 793A93743D9E3250F215517A /* LLMParametersTests.swift */; };
+		7552BC17BE4DDD107BD8C184 /* ChatCompletionRequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38AE329D9F5C14B6F59BD180 /* ChatCompletionRequestTests.swift */; };
 		943A4E7747DC974B53C9C05A /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C15B5DEBE22539D3014FB0 /* MenuBarView.swift */; };
 		9603911147B3BB430DDC7FEC /* RecordingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A67995E6D050736F1A924D0 /* RecordingOverlay.swift */; };
+		9C98572BDC21CD53CD41EB30 /* LLMParameters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 169DEB5CE3D073360396C304 /* LLMParameters.swift */; };
+		9E7DF579164FC073978AF06A /* OllamaServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A32C304FFCF39564376394 /* OllamaServiceTests.swift */; };
 		9EDBCB1D5BE38FB4C30400FF /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228E4AED20E4762580EDB048 /* AudioRecorder.swift */; };
 		A0A204C180EA3AB58EE93F87 /* SmartFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 994DCD537FB0A0D3DB135106 /* SmartFormatter.swift */; };
+		B2ABA2791ADCBC9F551A8431 /* OllamaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6F781E7F9980249B602B0A9 /* OllamaService.swift */; };
 		C004A35F306EDDE5140D2408 /* HotkeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AB9276147FF3D4774A3D586 /* HotkeyService.swift */; };
 		C27B5BEAB38D6A7F722A1E16 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFE2F72BC18FBE18489E7253 /* OnboardingView.swift */; };
 		C3FC7FC3903045D009EBD88C /* TranscriptionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09836C226C242967F5E312F4 /* TranscriptionEngine.swift */; };
 		D26DF2A616A9CBA450A285E7 /* CommandProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270CC0332E30F077940E8C29 /* CommandProcessor.swift */; };
 		E4BC7694188915A9726084D5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBC768354CC21B30BE8F16B /* SettingsView.swift */; };
+		E68D2952087328B625E2A85D /* DictionaryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16E1FA1FE6BE432EA0E39E46 /* DictionaryManager.swift */; };
 		EDD5753A98BF0CF21E1431D4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E9AA03911DF98EE733FDC21F /* Assets.xcassets */; };
 		F0BA80E09E384D4EE0D01717 /* TextInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CF4C3BBE9172872377DD0D /* TextInjector.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		69A7D126235987D695CE1D3D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 18FDD9345C3C58101066AD63 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 59CE878B7C81FAB0EB7E5398;
+			remoteInfo = AiyoWisper;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		09836C226C242967F5E312F4 /* TranscriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionEngine.swift; sourceTree = "<group>"; };
+		169DEB5CE3D073360396C304 /* LLMParameters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMParameters.swift; sourceTree = "<group>"; };
+		16E1FA1FE6BE432EA0E39E46 /* DictionaryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryManager.swift; sourceTree = "<group>"; };
 		1A67995E6D050736F1A924D0 /* RecordingOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingOverlay.swift; sourceTree = "<group>"; };
 		228E4AED20E4762580EDB048 /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
 		238C425E081DC012B7C57E6C /* LLMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMService.swift; sourceTree = "<group>"; };
 		254BE7E8F52D4EF8FC2219F6 /* ModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelManager.swift; sourceTree = "<group>"; };
+		26488AB07E46B331763738A5 /* LLMModelInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMModelInfoTests.swift; sourceTree = "<group>"; };
+		26F7FB8719155C05ED7EB41B /* LLMModelInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMModelInfo.swift; sourceTree = "<group>"; };
 		270CC0332E30F077940E8C29 /* CommandProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandProcessor.swift; sourceTree = "<group>"; };
+		38AE329D9F5C14B6F59BD180 /* ChatCompletionRequestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatCompletionRequestTests.swift; sourceTree = "<group>"; };
 		4BAC2BE20473E64500652CA8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		5AB9276147FF3D4774A3D586 /* HotkeyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyService.swift; sourceTree = "<group>"; };
+		793A93743D9E3250F215517A /* LLMParametersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMParametersTests.swift; sourceTree = "<group>"; };
 		91BB5BD3889DF1E19B158446 /* AiyoWisperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiyoWisperApp.swift; sourceTree = "<group>"; };
 		994DCD537FB0A0D3DB135106 /* SmartFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartFormatter.swift; sourceTree = "<group>"; };
+		A5E01EDAE1396BACC85CBC13 /* AiyoWisperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AiyoWisperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A625056815F0721CC6C673E2 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		B4C33A44D0055F30BB8159C6 /* PermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionService.swift; sourceTree = "<group>"; };
 		B7C15B5DEBE22539D3014FB0 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		C1CF4C3BBE9172872377DD0D /* TextInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInjector.swift; sourceTree = "<group>"; };
 		C948B47A2217EE8E08D3E707 /* DictationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationPipeline.swift; sourceTree = "<group>"; };
 		CB93F2DC13D400BE7BA2F459 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		D8A32C304FFCF39564376394 /* OllamaServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OllamaServiceTests.swift; sourceTree = "<group>"; };
 		D9501A0A341074F09308B3E9 /* ShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutManager.swift; sourceTree = "<group>"; };
 		E662CCC8992231C726CF288F /* AiyoWisper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AiyoWisper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6F781E7F9980249B602B0A9 /* OllamaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OllamaService.swift; sourceTree = "<group>"; };
 		E9AA03911DF98EE733FDC21F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FBBC768354CC21B30BE8F16B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FFE2F72BC18FBE18489E7253 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
@@ -69,6 +96,7 @@
 			isa = PBXGroup;
 			children = (
 				E662CCC8992231C726CF288F /* AiyoWisper.app */,
+				A5E01EDAE1396BACC85CBC13 /* AiyoWisperTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -112,6 +140,7 @@
 				5AB9276147FF3D4774A3D586 /* HotkeyService.swift */,
 				238C425E081DC012B7C57E6C /* LLMService.swift */,
 				254BE7E8F52D4EF8FC2219F6 /* ModelManager.swift */,
+				E6F781E7F9980249B602B0A9 /* OllamaService.swift */,
 				B4C33A44D0055F30BB8159C6 /* PermissionService.swift */,
 			);
 			path = Services;
@@ -121,6 +150,7 @@
 			isa = PBXGroup;
 			children = (
 				51E4055B58C10DF21D9148D2 /* AiyoWisper */,
+				FE3240C02628BD63131BEAE3 /* AiyoWisperTests */,
 				011DCC98BD27A17033CE93EA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -132,12 +162,26 @@
 				228E4AED20E4762580EDB048 /* AudioRecorder.swift */,
 				270CC0332E30F077940E8C29 /* CommandProcessor.swift */,
 				C948B47A2217EE8E08D3E707 /* DictationPipeline.swift */,
+				16E1FA1FE6BE432EA0E39E46 /* DictionaryManager.swift */,
+				26F7FB8719155C05ED7EB41B /* LLMModelInfo.swift */,
+				169DEB5CE3D073360396C304 /* LLMParameters.swift */,
 				D9501A0A341074F09308B3E9 /* ShortcutManager.swift */,
 				994DCD537FB0A0D3DB135106 /* SmartFormatter.swift */,
 				C1CF4C3BBE9172872377DD0D /* TextInjector.swift */,
 				09836C226C242967F5E312F4 /* TranscriptionEngine.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		FE3240C02628BD63131BEAE3 /* AiyoWisperTests */ = {
+			isa = PBXGroup;
+			children = (
+				38AE329D9F5C14B6F59BD180 /* ChatCompletionRequestTests.swift */,
+				26488AB07E46B331763738A5 /* LLMModelInfoTests.swift */,
+				793A93743D9E3250F215517A /* LLMParametersTests.swift */,
+				D8A32C304FFCF39564376394 /* OllamaServiceTests.swift */,
+			);
+			path = AiyoWisperTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -163,6 +207,24 @@
 			productReference = E662CCC8992231C726CF288F /* AiyoWisper.app */;
 			productType = "com.apple.product-type.application";
 		};
+		8BAEB20F40B80C41C647C3B7 /* AiyoWisperTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4F7EA6343AC825366F21554D /* Build configuration list for PBXNativeTarget "AiyoWisperTests" */;
+			buildPhases = (
+				F3C99702AE1830C9CFB5104E /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				37E7367640EF75AC4F4A1BC1 /* PBXTargetDependency */,
+			);
+			name = AiyoWisperTests;
+			packageProductDependencies = (
+			);
+			productName = AiyoWisperTests;
+			productReference = A5E01EDAE1396BACC85CBC13 /* AiyoWisperTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -173,6 +235,10 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					59CE878B7C81FAB0EB7E5398 = {
+						DevelopmentTeam = 8QWT6Z76LH;
+					};
+					8BAEB20F40B80C41C647C3B7 = {
+						DevelopmentTeam = 8QWT6Z76LH;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -195,6 +261,7 @@
 			projectRoot = "";
 			targets = (
 				59CE878B7C81FAB0EB7E5398 /* AiyoWisper */,
+				8BAEB20F40B80C41C647C3B7 /* AiyoWisperTests */,
 			);
 		};
 /* End PBXProject section */
@@ -221,10 +288,14 @@
 				D26DF2A616A9CBA450A285E7 /* CommandProcessor.swift in Sources */,
 				612A94A51030D4C383E79A1C /* Constants.swift in Sources */,
 				672930A6F99F31001B725781 /* DictationPipeline.swift in Sources */,
+				E68D2952087328B625E2A85D /* DictionaryManager.swift in Sources */,
 				C004A35F306EDDE5140D2408 /* HotkeyService.swift in Sources */,
+				2298D37DF24C598D5E7C8B30 /* LLMModelInfo.swift in Sources */,
+				9C98572BDC21CD53CD41EB30 /* LLMParameters.swift in Sources */,
 				683D66FEE9D824DAE4995522 /* LLMService.swift in Sources */,
 				943A4E7747DC974B53C9C05A /* MenuBarView.swift in Sources */,
 				0A914852748592431DF5C920 /* ModelManager.swift in Sources */,
+				B2ABA2791ADCBC9F551A8431 /* OllamaService.swift in Sources */,
 				C27B5BEAB38D6A7F722A1E16 /* OnboardingView.swift in Sources */,
 				08567F290C53C6F08D86754C /* PermissionService.swift in Sources */,
 				9603911147B3BB430DDC7FEC /* RecordingOverlay.swift in Sources */,
@@ -236,7 +307,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F3C99702AE1830C9CFB5104E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7552BC17BE4DDD107BD8C184 /* ChatCompletionRequestTests.swift in Sources */,
+				70A786EA32A4793B0C2BEF35 /* LLMModelInfoTests.swift in Sources */,
+				72621FBFCF1E7F74E736AA3C /* LLMParametersTests.swift in Sources */,
+				9E7DF579164FC073978AF06A /* OllamaServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		37E7367640EF75AC4F4A1BC1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 59CE878B7C81FAB0EB7E5398 /* AiyoWisper */;
+			targetProxy = 69A7D126235987D695CE1D3D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0271AC8D798797CE74073ACA /* Release */ = {
@@ -246,9 +336,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = AiyoWisper/AiyoWisper.entitlements;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 8QWT6Z76LH;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = AiyoWisper/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -257,9 +348,34 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.aiyo.wisper;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		0761CAC6244F4F2A8EBA1DFD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 8QWT6Z76LH;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aiyo.AiyoWisperTests;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AiyoWisper.app/Contents/MacOS/AiyoWisper";
 			};
 			name = Release;
 		};
@@ -319,6 +435,30 @@
 			};
 			name = Release;
 		};
+		2256CE80BA295D6CD6D72012 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 8QWT6Z76LH;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aiyo.AiyoWisperTests;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AiyoWisper.app/Contents/MacOS/AiyoWisper";
+			};
+			name = Debug;
+		};
 		9EE5D187784F0EC140EE0287 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -326,9 +466,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = AiyoWisper/AiyoWisper.entitlements;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 8QWT6Z76LH;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = AiyoWisper/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -414,6 +555,15 @@
 			buildConfigurations = (
 				AEEBAE222EB99317224CA96E /* Debug */,
 				125F7D66DE5DD6C005B8DBA0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4F7EA6343AC825366F21554D /* Build configuration list for PBXNativeTarget "AiyoWisperTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2256CE80BA295D6CD6D72012 /* Debug */,
+				0761CAC6244F4F2A8EBA1DFD /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

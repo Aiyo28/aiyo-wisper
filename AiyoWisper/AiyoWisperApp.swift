@@ -5,10 +5,9 @@ struct AiyoWisperApp: App {
     @State private var appState = AppState()
     @State private var modelManager = ModelManager()
     @State private var shortcutManager = ShortcutManager()
+    @State private var dictionaryManager = DictionaryManager()
     @State private var pipeline: DictationPipeline?
     @State private var overlay = RecordingOverlay()
-    @Environment(\.openWindow) private var openWindow
-
     var body: some Scene {
         MenuBarExtra("AIYO Wisper", systemImage: menuBarIcon) {
             MenuBarView(appState: appState, modelManager: modelManager)
@@ -26,12 +25,14 @@ struct AiyoWisperApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
+        .defaultLaunchBehavior(appState.isOnboarded ? .suppressed : .presented)
 
         Settings {
             SettingsView(
                 appState: appState,
                 modelManager: modelManager,
                 shortcutManager: shortcutManager,
+                dictionaryManager: dictionaryManager,
                 onModelSelected: {
                     Task {
                         await pipeline?.loadSelectedModel()
@@ -52,11 +53,20 @@ struct AiyoWisperApp: App {
         }
     }
 
+    private static func migrateAutoDetectLanguage() {
+        let migrationKey = "didMigrateAutoDetectLanguage_v1"
+        guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
+        UserDefaults.standard.set(true, forKey: Constants.UserDefaultsKeys.autoDetectLanguage)
+        UserDefaults.standard.set(true, forKey: migrationKey)
+    }
+
     init() {
+        Self.migrateAutoDetectLanguage()
         let state = _appState.wrappedValue
         let manager = _modelManager.wrappedValue
         let shortcuts = _shortcutManager.wrappedValue
-        let dictationPipeline = DictationPipeline(appState: state, modelManager: manager, shortcutManager: shortcuts)
+        let dictionary = _dictionaryManager.wrappedValue
+        let dictationPipeline = DictationPipeline(appState: state, modelManager: manager, shortcutManager: shortcuts, dictionaryManager: dictionary)
         _pipeline = State(initialValue: dictationPipeline)
 
         let recordingOverlay = _overlay.wrappedValue

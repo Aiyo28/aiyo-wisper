@@ -36,3 +36,5 @@ Package.resolved
 # Secrets
 .env
 *.pem
+.aider*
+.vault-cache/

@@ -3,7 +3,7 @@ import Cocoa
 
 struct TextInjector {
     @discardableResult
-    static func inject(_ text: String) -> Bool {
+    static func inject(_ text: String, charByChar: Bool = false) -> Bool {
         guard PermissionService.checkAccessibilityPermission() else { return false }
 
         let frontApp = NSWorkspace.shared.frontmostApplication
@@ -11,6 +11,8 @@ struct TextInjector {
 
         if Constants.TextInjection.terminalBundleIDs.contains(bundleID) {
             injectViaClipboard(text)
+        } else if charByChar {
+            injectViaKeyboardCharByChar(text)
         } else {
             injectViaKeyboard(text)
         }
@@ -103,6 +105,27 @@ struct TextInjector {
 
             usleep(Constants.TextInjection.interCharacterDelay)
             index = end
+        }
+    }
+
+    // MARK: - Character-by-character keyboard simulation (Raycast/text expander compatible)
+
+    private static func injectViaKeyboardCharByChar(_ text: String) {
+        let source = CGEventSource(stateID: .hidSystemState)
+
+        for char in text {
+            let utf16 = Array(String(char).utf16)
+
+            let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true)
+            let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false)
+
+            keyDown?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+            keyUp?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+
+            keyDown?.post(tap: .cgAnnotatedSessionEventTap)
+            keyUp?.post(tap: .cgAnnotatedSessionEventTap)
+
+            usleep(Constants.TextInjection.interCharacterDelay)
         }
     }
 

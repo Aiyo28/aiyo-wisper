@@ -12,10 +12,26 @@ enum DictationStatus: String {
     case commandInjecting
 }
 
+struct TranscriptionEntry: Identifiable, Codable {
+    let id: UUID
+    let text: String
+    let date: Date
+    let isCommand: Bool
+
+    init(text: String, date: Date, isCommand: Bool) {
+        self.id = UUID()
+        self.text = text
+        self.date = date
+        self.isCommand = isCommand
+    }
+}
+
 @Observable
 final class AppState {
     var status: DictationStatus = .idle
     var lastTranscription: String = ""
+    var transcriptionHistory: [TranscriptionEntry] = []
+    private static let maxHistoryEntries = 50
     var lastCommand: String = ""
     var errorMessage: String?
     var isCommandMode: Bool = false
@@ -36,7 +52,7 @@ final class AppState {
     @AppStorage(Constants.UserDefaultsKeys.preferredLanguage) var preferredLanguage: String = Constants.Language.defaultLanguage
 
     @ObservationIgnored
-    @AppStorage(Constants.UserDefaultsKeys.autoDetectLanguage) var autoDetectLanguage: Bool = false
+    @AppStorage(Constants.UserDefaultsKeys.autoDetectLanguage) var autoDetectLanguage: Bool = true
 
     @ObservationIgnored
     @AppStorage(Constants.UserDefaultsKeys.minimalFormattingForEditors) var minimalFormattingForEditors: Bool = true
@@ -50,5 +66,74 @@ final class AppState {
     @ObservationIgnored
     @AppStorage(Constants.UserDefaultsKeys.commandModeEnabled) var commandModeEnabled: Bool = true
 
+    @ObservationIgnored
+    @AppStorage(Constants.UserDefaultsKeys.characterByCharacterMode) var characterByCharacterMode: Bool = false
+
+    @ObservationIgnored
+    @AppStorage(Constants.UserDefaultsKeys.llmTemperature) var llmTemperature: Double = Constants.LLM.defaultTemperature
+
+    @ObservationIgnored
+    @AppStorage(Constants.UserDefaultsKeys.llmRepeatPenalty) var llmRepeatPenalty: Double = Constants.LLM.defaultRepeatPenalty
+
+    @ObservationIgnored
+    @AppStorage(Constants.UserDefaultsKeys.llmFrequencyPenalty) var llmFrequencyPenalty: Double = Constants.LLM.defaultFrequencyPenalty
+
+    @ObservationIgnored
+    @AppStorage(Constants.UserDefaultsKeys.llmMaxTokens) var llmMaxTokens: Int = Constants.LLM.defaultMaxTokens
+
+    var llmParameters: LLMParameters {
+        LLMParameters(
+            temperature: llmTemperature,
+            repeatPenalty: llmRepeatPenalty,
+            frequencyPenalty: llmFrequencyPenalty,
+            maxTokens: llmMaxTokens
+        )
+    }
+
     var isRecordingAny: Bool { status == .recording || status == .commandRecording }
+
+    init() {
+        loadHistory()
+    }
+
+    func addTranscription(_ text: String, isCommand: Bool) {
+        let entry = TranscriptionEntry(text: text, date: Date(), isCommand: isCommand)
+        transcriptionHistory.insert(entry, at: 0)
+        if transcriptionHistory.count > Self.maxHistoryEntries {
+            transcriptionHistory.removeLast()
+        }
+        saveHistory()
+    }
+
+    func clearHistory() {
+        transcriptionHistory.removeAll()
+        saveHistory()
+    }
+
+    // MARK: - History Persistence
+
+    private func loadHistory() {
+        let url = Constants.History.historyFileURL
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        do {
+            let data = try Data(contentsOf: url)
+            let entries = try JSONDecoder().decode([TranscriptionEntry].self, from: data)
+            transcriptionHistory = Array(entries.prefix(Constants.History.maxPersistentEntries))
+        } catch {
+            print("[AppState] Failed to load history: \(error)")
+        }
+    }
+
+    private func saveHistory() {
+        let url = Constants.History.historyFileURL
+        let entriesToSave = Array(transcriptionHistory.prefix(Constants.History.maxPersistentEntries))
+        do {
+            let dir = url.deletingLastPathComponent()
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let data = try JSONEncoder().encode(entriesToSave)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            print("[AppState] Failed to save history: \(error)")
+        }
+    }
 }

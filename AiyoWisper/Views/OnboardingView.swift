@@ -6,7 +6,6 @@ struct OnboardingView: View {
     var onComplete: (() -> Void)?
     @State private var currentStep = 0
     @State private var permissionService = PermissionService()
-    @State private var accessibilityTimer: Timer?
     @State private var downloadError: String?
     @Environment(\.dismissWindow) private var dismissWindow
 
@@ -60,22 +59,8 @@ struct OnboardingView: View {
         .frame(width: 520, height: 520)
     }
 
-    private func startAccessibilityPolling() {
-        accessibilityTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [permissionService] _ in
-            MainActor.assumeIsolated {
-                permissionService.refreshPermissions()
-                if permissionService.hasAccessibilityAccess {
-                    self.accessibilityTimer?.invalidate()
-                    self.accessibilityTimer = nil
-                }
-            }
-        }
-    }
-
     private var canContinue: Bool {
         switch currentStep {
-        case 1: permissionService.hasMicrophoneAccess
-        case 2: permissionService.hasAccessibilityAccess
         case 3: modelManager.availableModels.contains(where: \.isDownloaded)
         default: true
         }
@@ -112,6 +97,14 @@ struct OnboardingView: View {
             if permissionService.hasMicrophoneAccess {
                 Label("Permission granted", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
+            } else if permissionService.microphoneWasDenied {
+                Text("Permission was denied. Please enable it in System Settings.")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                Button("Open System Settings") {
+                    permissionService.openMicrophoneSettings()
+                }
+                .buttonStyle(.bordered)
             } else {
                 Button("Grant Microphone Access") {
                     Task {
@@ -150,11 +143,6 @@ struct OnboardingView: View {
         }
         .onAppear {
             permissionService.refreshPermissions()
-            startAccessibilityPolling()
-        }
-        .onDisappear {
-            accessibilityTimer?.invalidate()
-            accessibilityTimer = nil
         }
     }
 

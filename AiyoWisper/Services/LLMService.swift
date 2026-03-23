@@ -37,6 +37,8 @@ struct ChatCompletionRequest: Codable, Sendable {
     let messages: [ChatMessage]
     let temperature: Double
     let max_tokens: Int
+    let repeat_penalty: Double?
+    let frequency_penalty: Double?
 }
 
 struct ChatCompletionResponse: Codable, Sendable {
@@ -56,7 +58,7 @@ struct LLMService: Sendable {
     let modelName: String
 
     /// Send a chat completion request and return the response content.
-    func complete(systemPrompt: String, userPrompt: String) async throws -> String {
+    func complete(systemPrompt: String, userPrompt: String, parameters: LLMParameters = LLMParameters()) async throws -> String {
         guard let baseURL = URL(string: endpointURL),
               let url = URL(string: "/chat/completions", relativeTo: baseURL)
         else {
@@ -69,8 +71,10 @@ struct LLMService: Sendable {
                 ChatMessage(role: "system", content: systemPrompt),
                 ChatMessage(role: "user", content: userPrompt),
             ],
-            temperature: 0.3,
-            max_tokens: 2048
+            temperature: parameters.temperature,
+            max_tokens: parameters.maxTokens,
+            repeat_penalty: parameters.repeatPenalty > 1.0 ? parameters.repeatPenalty : nil,
+            frequency_penalty: parameters.frequencyPenalty > 0.0 ? parameters.frequencyPenalty : nil
         )
 
         var request = URLRequest(url: url)

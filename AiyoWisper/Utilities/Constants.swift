@@ -28,7 +28,9 @@ enum Constants {
             ("base", "150 MB", "Good balance for quick tasks"),
             ("small", "500 MB", "Better accuracy, moderate speed"),
             ("medium", "1.5 GB", "High accuracy, slower"),
-            ("large", "3 GB", "Best accuracy, slowest"),
+            ("large-v3", "3 GB", "Best accuracy, slowest"),
+            ("large-v3-turbo", "~600 MB", "Near large-v3 accuracy, 6x faster"),
+            ("distil-large-v3", "~600 MB", "Near large-v3 accuracy, English only"),
         ]
     }
 
@@ -41,6 +43,12 @@ enum Constants {
         static let llmEndpoint = "llmEndpoint"
         static let llmModel = "llmModel"
         static let commandModeEnabled = "commandModeEnabled"
+        static let characterByCharacterMode = "characterByCharacterMode"
+        static let llmTemperature = "llmTemperature"
+        static let llmRepeatPenalty = "llmRepeatPenalty"
+        static let llmFrequencyPenalty = "llmFrequencyPenalty"
+        static let llmMaxTokens = "llmMaxTokens"
+        static let llmPreset = "llmPreset"
     }
 
     enum TextInjection {
@@ -86,13 +94,35 @@ enum Constants {
             "com.jetbrains.intellij",
         ]
 
-        static let smallModels: Set<String> = ["tiny", "base"]
+        static let smallModels: Set<String> = ["tiny", "base"] // Models that need punctuation polish
     }
 
     enum LLM {
         static let defaultEndpoint = "http://localhost:11434/v1"
         static let defaultModel = "llama3.2:3b"
         static let requestTimeout: TimeInterval = 30
+
+        static let defaultTemperature: Double = 0.5
+        static let defaultRepeatPenalty: Double = 1.3
+        static let defaultFrequencyPenalty: Double = 0.5
+        static let defaultMaxTokens: Int = 1024
+        static let defaultPreset: String = "balanced"
+    }
+
+    enum History {
+        static let maxPersistentEntries = 6
+
+        static var historyFileURL: URL {
+            let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            return appSupport.appendingPathComponent("AiyoWisper/history.json", isDirectory: false)
+        }
+    }
+
+    enum Dictionary {
+        static var dictionaryFileURL: URL {
+            let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            return appSupport.appendingPathComponent("AiyoWisper/dictionary.json", isDirectory: false)
+        }
     }
 
     enum CommandMode {
