@@ -69,12 +69,14 @@ final class DictationPipeline {
         let modelName = appState.selectedModel
         guard let modelPath = modelManager.modelPath(for: modelName) else {
             appState.isModelLoaded = false
+            appState.errorMessage = "Model \"\(modelName)\" not downloaded — open Settings → Transcription to download"
             return
         }
 
         do {
             try await transcriptionEngine.loadModel(path: modelPath.path)
             appState.isModelLoaded = true
+            appState.errorMessage = nil
         } catch {
             appState.isModelLoaded = false
             appState.errorMessage = "Failed to load model: \(error.localizedDescription)"
@@ -90,7 +92,11 @@ final class DictationPipeline {
         isProcessing = true
         defer { if appState.status != .recording { isProcessing = false } }
         guard appState.isModelLoaded else {
-            appState.errorMessage = "Model is still loading, please wait..."
+            if modelManager.modelPath(for: appState.selectedModel) == nil {
+                appState.errorMessage = "Model \"\(appState.selectedModel)\" not downloaded — open Settings → Transcription to download"
+            } else {
+                appState.errorMessage = "Model is still loading, please wait..."
+            }
             return
         }
         guard PermissionService.checkMicrophonePermission() else {
@@ -203,7 +209,11 @@ final class DictationPipeline {
         isProcessing = true
         defer { if appState.status != .commandRecording { isProcessing = false } }
         guard appState.isModelLoaded else {
-            appState.errorMessage = "Model is still loading, please wait..."
+            if modelManager.modelPath(for: appState.selectedModel) == nil {
+                appState.errorMessage = "Model \"\(appState.selectedModel)\" not downloaded — open Settings → Transcription to download"
+            } else {
+                appState.errorMessage = "Model is still loading, please wait..."
+            }
             return
         }
         guard PermissionService.checkMicrophonePermission() else {

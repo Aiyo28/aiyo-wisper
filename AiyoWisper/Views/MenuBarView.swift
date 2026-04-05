@@ -117,7 +117,7 @@ struct MenuBarView: View {
 
     private var statusColor: Color {
         switch appState.status {
-        case .idle: .green
+        case .idle: appState.isModelLoaded ? .green : .orange
         case .recording: .red
         case .transcribing: .orange
         case .injecting: .blue
@@ -131,7 +131,7 @@ struct MenuBarView: View {
 
     private var statusText: String {
         switch appState.status {
-        case .idle: "Ready"
+        case .idle: appState.isModelLoaded ? "Ready" : "Model Not Ready"
         case .recording: "Recording..."
         case .transcribing: "Transcribing..."
         case .injecting: "Injecting text..."
