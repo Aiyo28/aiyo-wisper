@@ -100,22 +100,24 @@ enum Constants {
         static let cleanupTimeout: TimeInterval = 5
 
         static let cleanupSystemPrompt = """
+            /no_think
             Clean up this speech transcription. Remove filler words, self-corrections, \
             and disfluencies. Add proper punctuation and capitalization. \
             Output only the cleaned text, nothing else.
             """
 
         static let commandSystemPrompt = """
+            /no_think
             You are a text transformation assistant. You receive selected text and a voice command. \
             Apply the command to transform the text. Output ONLY the transformed text. \
             Do not add explanations, markdown formatting, or quotes around the output. \
             Preserve the original formatting style unless the command requires changing it.
             """
 
-        static let defaultModelRepo = "unsloth/Qwen3.5-4B-GGUF"
-        static let defaultModelFile = "Qwen3.5-4B-Q4_K_M.gguf"
-        static let defaultModelName = "Qwen 3.5 4B"
-        static let defaultModelSize = "~2.5 GB"
+        static let defaultModelRepo = "unsloth/Qwen3-0.6B-GGUF"
+        static let defaultModelFile = "Qwen3-0.6B-Q4_K_M.gguf"
+        static let defaultModelName = "Qwen3 0.6B"
+        static let defaultModelSize = "~400 MB"
 
         static var llmModelsDirectory: URL {
             let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
