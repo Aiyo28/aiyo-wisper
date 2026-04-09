@@ -40,13 +40,9 @@ enum Constants {
         static let preferredLanguage = "preferredLanguage"
         static let autoDetectLanguage = "autoDetectLanguage"
         static let minimalFormattingForEditors = "minimalFormattingForEditors"
-        static let llmEndpoint = "llmEndpoint"
-        static let llmModel = "llmModel"
         static let commandModeEnabled = "commandModeEnabled"
         static let characterByCharacterMode = "characterByCharacterMode"
         static let llmTemperature = "llmTemperature"
-        static let llmRepeatPenalty = "llmRepeatPenalty"
-        static let llmFrequencyPenalty = "llmFrequencyPenalty"
         static let llmMaxTokens = "llmMaxTokens"
         static let llmPreset = "llmPreset"
     }
@@ -98,15 +94,41 @@ enum Constants {
     }
 
     enum LLM {
-        static let defaultEndpoint = "http://localhost:11434/v1"
-        static let defaultModel = "llama3.2:3b"
-        static let requestTimeout: TimeInterval = 30
-
         static let defaultTemperature: Double = 0.5
-        static let defaultRepeatPenalty: Double = 1.3
-        static let defaultFrequencyPenalty: Double = 0.5
         static let defaultMaxTokens: Int = 1024
         static let defaultPreset: String = "balanced"
+        static let cleanupTimeout: TimeInterval = 5
+
+        static let cleanupSystemPrompt = """
+            Clean up this speech transcription. Remove filler words, self-corrections, \
+            and disfluencies. Add proper punctuation and capitalization. \
+            Output only the cleaned text, nothing else.
+            """
+
+        static let commandSystemPrompt = """
+            You are a text transformation assistant. You receive selected text and a voice command. \
+            Apply the command to transform the text. Output ONLY the transformed text. \
+            Do not add explanations, markdown formatting, or quotes around the output. \
+            Preserve the original formatting style unless the command requires changing it.
+            """
+
+        static let defaultModelRepo = "Qwen/Qwen3.5-4B-GGUF"
+        static let defaultModelFile = "qwen3.5-4b-q4_k_m.gguf"
+        static let defaultModelName = "Qwen 3.5 4B"
+        static let defaultModelSize = "~2.5 GB"
+
+        static var llmModelsDirectory: URL {
+            let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            return appSupport.appendingPathComponent("AiyoWisper/LLMModels", isDirectory: true)
+        }
+
+        static var defaultModelPath: URL {
+            llmModelsDirectory.appendingPathComponent(defaultModelFile)
+        }
+    }
+
+    enum UserDefaultsKeys2 {
+        static let useLLMCleanup = "useLLMCleanup"
     }
 
     enum History {
