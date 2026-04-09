@@ -622,6 +622,7 @@ private struct TranscriptionTab: View {
                         isActive: appState.selectedModel == model.id,
                         isDownloading: modelManager.isDownloading && modelManager.currentDownloadModel == model.id,
                         canDownload: !modelManager.isDownloading,
+                        downloadProgress: modelManager.downloadProgress,
                         showLanguageWarning: model.englishOnly && (appState.autoDetectLanguage || appState.preferredLanguage != "en"),
                         onSelect: {
                             appState.selectedModel = model.id
@@ -667,6 +668,7 @@ private struct ModelRow: View {
     let isActive: Bool
     let isDownloading: Bool
     let canDownload: Bool
+    var downloadProgress: Double = 0
     var showLanguageWarning: Bool = false
     var onSelect: () -> Void
     var onDownload: () -> Void
@@ -712,8 +714,13 @@ private struct ModelRow: View {
                     }
                 }
             } else if isDownloading {
-                ProgressView()
-                    .controlSize(.small)
+                VStack(alignment: .trailing, spacing: 4) {
+                    ProgressView(value: downloadProgress)
+                        .frame(width: 100)
+                    Text("\(Int(downloadProgress * 100))%")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             } else {
                 Button("Download", action: onDownload)
                     .controlSize(.small)

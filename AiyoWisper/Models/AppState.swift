@@ -44,8 +44,9 @@ final class AppState {
     @ObservationIgnored
     @AppStorage(Constants.UserDefaultsKeys.isOnboarded) var isOnboarded: Bool = false
 
-    @ObservationIgnored
-    @AppStorage(Constants.UserDefaultsKeys.selectedModel) var selectedModel: String = Constants.Models.defaultModel
+    var selectedModel: String = Constants.Models.defaultModel {
+        didSet { UserDefaults.standard.set(selectedModel, forKey: Constants.UserDefaultsKeys.selectedModel) }
+    }
 
     var detectedLanguage: String?
 
@@ -83,6 +84,9 @@ final class AppState {
     var isRecordingAny: Bool { status == .recording || status == .commandRecording }
 
     init() {
+        if let stored = UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.selectedModel) {
+            selectedModel = stored
+        }
         loadHistory()
     }
 
