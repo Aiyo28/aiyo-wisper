@@ -34,7 +34,7 @@ struct SettingsView: View {
             }
         }
         .frame(minWidth: 600, minHeight: 480)
-        .tint(.purple)
+        .tint(.blue)
     }
 }
 
@@ -302,8 +302,18 @@ private struct FormattingTab: View {
 
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(Constants.LLM.defaultModelName)
-                            .fontWeight(.medium)
+                        HStack(spacing: 6) {
+                            Text(Constants.LLM.defaultModelName)
+                                .fontWeight(.medium)
+                            if llmModelManager.isModelDownloaded {
+                                Text("Active")
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(.blue.opacity(0.2), in: Capsule())
+                                    .foregroundStyle(.blue)
+                            }
+                        }
                         Text("\(Constants.LLM.defaultModelSize) — also used for command mode")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
