@@ -34,6 +34,7 @@ struct SettingsView: View {
             }
         }
         .frame(minWidth: 600, minHeight: 480)
+        .tint(.purple)
     }
 }
 
