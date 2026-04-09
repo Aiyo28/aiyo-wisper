@@ -12,6 +12,7 @@ final class DictationPipeline {
     private let shortcutManager: ShortcutManager
     private let dictionaryManager: DictionaryManager
     private var commandProcessor: CommandProcessor?
+    private var llmBackend: (any LLMBackend)?
     private var recordingStartTime: Date?
     private var isProcessing = false
 
@@ -20,6 +21,15 @@ final class DictationPipeline {
         self.modelManager = modelManager
         self.shortcutManager = shortcutManager
         self.dictionaryManager = dictionaryManager
+    }
+
+    func updateLLMBackend(_ backend: (any LLMBackend)?) {
+        self.llmBackend = backend
+        if let backend {
+            commandProcessor = CommandProcessor(backend: backend)
+        } else {
+            commandProcessor = nil
+        }
     }
 
     func start() {
@@ -50,8 +60,6 @@ final class DictationPipeline {
                 await self.stopCommandRecordingAndProcess()
             }
         }
-
-        updateLLMSettings()
 
         Task {
             await loadSelectedModel()
@@ -154,11 +162,16 @@ final class DictationPipeline {
             }
 
             let minimalMode = SmartFormatter.shouldUseMinimalMode(setting: appState.minimalFormattingForEditors)
-            let formatted = smartFormatter.format(result.text, modelId: appState.selectedModel, minimalMode: minimalMode)
+            var formatted = smartFormatter.format(result.text, modelId: appState.selectedModel, minimalMode: minimalMode)
 
             guard !formatted.isEmpty else {
                 appState.status = .idle
                 return
+            }
+
+            if appState.useLLMCleanup, let backend = llmBackend {
+                appState.status = .cleaning
+                formatted = await smartFormatter.cleanupWithLLM(formatted, backend: backend)
             }
 
             let corrected = dictionaryManager.applyCorrections(formatted)
@@ -176,23 +189,6 @@ final class DictationPipeline {
         }
     }
 
-    // MARK: - LLM Settings
-
-    func reloadLLMService() {
-        updateLLMSettings()
-    }
-
-    func updateLLMSettings() {
-        let endpoint = appState.llmEndpoint
-        let model = appState.llmModel
-        guard !endpoint.isEmpty, !model.isEmpty else {
-            commandProcessor = nil
-            return
-        }
-        let llmService = LLMService(endpointURL: endpoint, modelName: model)
-        commandProcessor = CommandProcessor(llmService: llmService)
-    }
-
     // MARK: - Command Mode
 
     private func startCommandRecording() {
@@ -203,7 +199,7 @@ final class DictationPipeline {
         }
         guard appState.commandModeEnabled else { return }
         guard commandProcessor != nil else {
-            appState.errorMessage = "Command mode requires LLM settings to be configured"
+            appState.errorMessage = "Download AI model in Settings → Formatting to enable command mode"
             return
         }
         isProcessing = true

@@ -15,10 +15,10 @@ struct CommandProcessor: Sendable {
 
     // MARK: - Dependencies
 
-    private let llmService: LLMService
+    private let backend: any LLMBackend
 
-    init(llmService: LLMService) {
-        self.llmService = llmService
+    init(backend: any LLMBackend) {
+        self.backend = backend
     }
 
     // MARK: - Processing
@@ -31,7 +31,7 @@ struct CommandProcessor: Sendable {
             \(selectedText)
             """
 
-        let result = try await llmService.complete(
+        let result = try await backend.complete(
             systemPrompt: Self.systemPrompt,
             userPrompt: userPrompt,
             parameters: parameters

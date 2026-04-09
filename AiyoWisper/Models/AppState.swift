@@ -4,6 +4,7 @@ enum DictationStatus: String {
     case idle
     case recording
     case transcribing
+    case cleaning
     case injecting
     case error
     case commandRecording
@@ -58,10 +59,7 @@ final class AppState {
     @AppStorage(Constants.UserDefaultsKeys.minimalFormattingForEditors) var minimalFormattingForEditors: Bool = true
 
     @ObservationIgnored
-    @AppStorage(Constants.UserDefaultsKeys.llmEndpoint) var llmEndpoint: String = Constants.LLM.defaultEndpoint
-
-    @ObservationIgnored
-    @AppStorage(Constants.UserDefaultsKeys.llmModel) var llmModel: String = Constants.LLM.defaultModel
+    @AppStorage(Constants.UserDefaultsKeys2.useLLMCleanup) var useLLMCleanup: Bool = true
 
     @ObservationIgnored
     @AppStorage(Constants.UserDefaultsKeys.commandModeEnabled) var commandModeEnabled: Bool = true
@@ -73,19 +71,11 @@ final class AppState {
     @AppStorage(Constants.UserDefaultsKeys.llmTemperature) var llmTemperature: Double = Constants.LLM.defaultTemperature
 
     @ObservationIgnored
-    @AppStorage(Constants.UserDefaultsKeys.llmRepeatPenalty) var llmRepeatPenalty: Double = Constants.LLM.defaultRepeatPenalty
-
-    @ObservationIgnored
-    @AppStorage(Constants.UserDefaultsKeys.llmFrequencyPenalty) var llmFrequencyPenalty: Double = Constants.LLM.defaultFrequencyPenalty
-
-    @ObservationIgnored
     @AppStorage(Constants.UserDefaultsKeys.llmMaxTokens) var llmMaxTokens: Int = Constants.LLM.defaultMaxTokens
 
     var llmParameters: LLMParameters {
         LLMParameters(
             temperature: llmTemperature,
-            repeatPenalty: llmRepeatPenalty,
-            frequencyPenalty: llmFrequencyPenalty,
             maxTokens: llmMaxTokens
         )
     }
