@@ -27,11 +27,15 @@ Package.resolved
 .LSOverride
 ._*
 
-# Whisper models (large binary files)
+# Models (large binary files)
 *.bin
 *.ggml
+*.gguf
 *.mlmodelc/
 *.mlpackage/
+
+# Generated Xcode project (use xcodegen generate)
+AiyoWisper.xcodeproj/
 
 # Secrets
 .env
