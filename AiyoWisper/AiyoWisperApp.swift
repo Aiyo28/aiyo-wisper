@@ -4,13 +4,16 @@ import SwiftUI
 struct AiyoWisperApp: App {
     @State private var appState = AppState()
     @State private var modelManager = ModelManager()
+    @State private var llmModelManager = LLMModelManager()
     @State private var shortcutManager = ShortcutManager()
     @State private var dictionaryManager = DictionaryManager()
     @State private var pipeline: DictationPipeline?
     @State private var overlay = RecordingOverlay()
+    @StateObject private var updaterService = UpdaterService()
+
     var body: some Scene {
         MenuBarExtra("AIYO Wisper", systemImage: menuBarIcon) {
-            MenuBarView(appState: appState, modelManager: modelManager)
+            MenuBarView(appState: appState, modelManager: modelManager, updaterService: updaterService)
         }
         .menuBarExtraStyle(.window)
 
@@ -31,6 +34,8 @@ struct AiyoWisperApp: App {
             SettingsView(
                 appState: appState,
                 modelManager: modelManager,
+                llmModelManager: llmModelManager,
+                updaterService: updaterService,
                 shortcutManager: shortcutManager,
                 dictionaryManager: dictionaryManager,
                 onModelSelected: {
@@ -38,8 +43,8 @@ struct AiyoWisperApp: App {
                         await pipeline?.loadSelectedModel()
                     }
                 },
-                onLLMSettingsChanged: {
-                    pipeline?.updateLLMSettings()
+                onLLMModelChanged: {
+                    updateLLMBackend()
                 }
             )
         }
@@ -48,8 +53,17 @@ struct AiyoWisperApp: App {
     private var menuBarIcon: String {
         switch appState.status {
         case .recording: "mic.fill"
-        case .transcribing: "ellipsis.circle"
+        case .transcribing, .cleaning: "ellipsis.circle"
         default: "waveform"
+        }
+    }
+
+    private func updateLLMBackend() {
+        if let path = llmModelManager.modelPath {
+            let backend = LocalLLMBackend(modelPath: path)
+            pipeline?.updateLLMBackend(backend)
+        } else {
+            pipeline?.updateLLMBackend(nil)
         }
     }
 
@@ -64,9 +78,16 @@ struct AiyoWisperApp: App {
         Self.migrateAutoDetectLanguage()
         let state = _appState.wrappedValue
         let manager = _modelManager.wrappedValue
+        let llmManager = _llmModelManager.wrappedValue
         let shortcuts = _shortcutManager.wrappedValue
         let dictionary = _dictionaryManager.wrappedValue
         let dictationPipeline = DictationPipeline(appState: state, modelManager: manager, shortcutManager: shortcuts, dictionaryManager: dictionary)
+
+        if let path = llmManager.modelPath {
+            let backend = LocalLLMBackend(modelPath: path)
+            dictationPipeline.updateLLMBackend(backend)
+        }
+
         _pipeline = State(initialValue: dictationPipeline)
 
         let recordingOverlay = _overlay.wrappedValue

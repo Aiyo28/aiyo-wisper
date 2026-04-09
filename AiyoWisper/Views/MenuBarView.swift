@@ -3,6 +3,7 @@ import SwiftUI
 struct MenuBarView: View {
     let appState: AppState
     let modelManager: ModelManager
+    @ObservedObject var updaterService: UpdaterService
     @State private var copiedEntryId: UUID?
 
     var body: some View {
@@ -107,6 +108,11 @@ struct MenuBarView: View {
 
             SettingsLink()
 
+            Button("Check for Updates...") {
+                updaterService.checkForUpdates()
+            }
+            .disabled(!updaterService.canCheckForUpdates)
+
             Button("Quit") {
                 NSApplication.shared.terminate(nil)
             }
@@ -120,6 +126,7 @@ struct MenuBarView: View {
         case .idle: appState.isModelLoaded ? .green : .orange
         case .recording: .red
         case .transcribing: .orange
+        case .cleaning: .cyan
         case .injecting: .blue
         case .error: .red
         case .commandRecording: .purple
@@ -134,6 +141,7 @@ struct MenuBarView: View {
         case .idle: appState.isModelLoaded ? "Ready" : "Model Not Ready"
         case .recording: "Recording..."
         case .transcribing: "Transcribing..."
+        case .cleaning: "Cleaning up..."
         case .injecting: "Injecting text..."
         case .error: "Error"
         case .commandRecording: "Command Mode..."

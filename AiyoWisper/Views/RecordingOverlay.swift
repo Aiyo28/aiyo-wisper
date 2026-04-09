@@ -29,7 +29,7 @@ final class RecordingOverlay {
     private func updateVisibility() {
         guard let appState else { return }
         switch appState.status {
-        case .recording, .transcribing,
+        case .recording, .transcribing, .cleaning,
              .commandRecording, .commandTranscribing, .commandProcessing:
             show(status: appState.status)
         default:

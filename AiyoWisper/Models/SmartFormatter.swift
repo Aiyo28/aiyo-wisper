@@ -90,6 +90,33 @@ struct SmartFormatter {
         return result
     }
 
+    // MARK: - LLM Cleanup
+
+    func cleanupWithLLM(_ text: String, backend: any LLMBackend) async -> String {
+        let parameters = LLMParameters(temperature: 0.2, maxTokens: 512)
+        do {
+            return try await withThrowingTaskGroup(of: String.self) { group in
+                group.addTask {
+                    try await backend.complete(
+                        systemPrompt: Constants.LLM.cleanupSystemPrompt,
+                        userPrompt: text,
+                        parameters: parameters
+                    )
+                }
+                group.addTask {
+                    try await Task.sleep(for: .seconds(Constants.LLM.cleanupTimeout))
+                    throw LLMError.inferenceTimeout
+                }
+                let result = try await group.next()!
+                group.cancelAll()
+                return result
+            }
+        } catch {
+            print("[SmartFormatter] LLM cleanup failed, using regex output: \(error)")
+            return text
+        }
+    }
+
     // MARK: - Minimal Mode Detection
 
     static func shouldUseMinimalMode(setting: Bool) -> Bool {

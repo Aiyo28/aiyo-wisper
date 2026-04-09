@@ -10,6 +10,12 @@ packages:
   WhisperKit:
     url: https://github.com/argmaxinc/WhisperKit.git
     from: "0.9.0"
+  LLM:
+    url: https://github.com/eastriverlee/LLM.swift.git
+    branch: main
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle.git
+    from: "2.6.0"
 
 targets:
   AiyoWisper:
@@ -41,12 +47,16 @@ targets:
           PROVISIONING_PROFILE_SPECIFIER: ""
     dependencies:
       - package: WhisperKit
+      - package: LLM
+      - package: Sparkle
     info:
       path: AiyoWisper/Info.plist
       properties:
         LSUIElement: true
         NSMicrophoneUsageDescription: "AIYO Wisper needs microphone access to capture your voice for local speech-to-text transcription. Audio is processed entirely on your device."
         NSAccessibilityUsageDescription: "AIYO Wisper needs Accessibility access to register global hotkeys and type transcribed text into other applications."
+        SUFeedURL: "https://raw.githubusercontent.com/ayal/aiyo-wisper/main/appcast.xml"
+        SUEnableAutomaticChecks: true
 
   AiyoWisperTests:
     type: bundle.unit-test
