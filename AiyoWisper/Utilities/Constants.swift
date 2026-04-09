@@ -112,8 +112,8 @@ enum Constants {
             Preserve the original formatting style unless the command requires changing it.
             """
 
-        static let defaultModelRepo = "Qwen/Qwen3.5-4B-GGUF"
-        static let defaultModelFile = "qwen3.5-4b-q4_k_m.gguf"
+        static let defaultModelRepo = "unsloth/Qwen3.5-4B-GGUF"
+        static let defaultModelFile = "Qwen3.5-4B-Q4_K_M.gguf"
         static let defaultModelName = "Qwen 3.5 4B"
         static let defaultModelSize = "~2.5 GB"
 
