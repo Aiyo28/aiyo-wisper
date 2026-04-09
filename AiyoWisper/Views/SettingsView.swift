@@ -345,14 +345,6 @@ private struct FormattingTab: View {
                     } else {
                         Button("Download") {
                             llmModelManager.download()
-                            Task {
-                                while llmModelManager.isDownloading {
-                                    try? await Task.sleep(for: .milliseconds(500))
-                                }
-                                if llmModelManager.isModelDownloaded {
-                                    onLLMModelChanged?()
-                                }
-                            }
                         }
                         .controlSize(.small)
                     }
@@ -362,6 +354,13 @@ private struct FormattingTab: View {
                     Text(error)
                         .font(.caption)
                         .foregroundStyle(.red)
+                }
+            }
+            .onChange(of: llmModelManager.isModelDownloaded) { _, isDownloaded in
+                if isDownloaded {
+                    useLLMCleanup = true
+                    appState.useLLMCleanup = true
+                    onLLMModelChanged?()
                 }
             }
 
@@ -520,6 +519,8 @@ private struct CommandModeTab: View {
                 Text("Hold Option to speak a command that transforms selected text. Requires the AI model — download it in Settings → Formatting → AI Text Cleanup.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .multilineTextAlignment(.center)
             }
 
             Section("Quality Preset") {
@@ -699,13 +700,16 @@ private struct ModelRow: View {
             }
             Spacer()
             if model.isDownloaded {
-                HStack(spacing: 8) {
-                    if !isActive {
-                        Button("Select", action: onSelect)
-                            .controlSize(.small)
-                    }
+                if isActive {
                     Button("Delete", role: .destructive, action: onDelete)
                         .controlSize(.small)
+                } else {
+                    HStack(spacing: 8) {
+                        Button("Select", action: onSelect)
+                            .controlSize(.small)
+                        Button("Delete", role: .destructive, action: onDelete)
+                            .controlSize(.small)
+                    }
                 }
             } else if isDownloading {
                 ProgressView()
