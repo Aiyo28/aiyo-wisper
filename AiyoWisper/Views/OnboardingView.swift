@@ -154,44 +154,71 @@ struct OnboardingView: View {
             Text("Download a Model")
                 .font(.title2)
                 .fontWeight(.semibold)
-            Text("Smaller models are faster but less accurate.")
+            Text("Pick a speech recognition model to get started.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 ForEach(modelManager.availableModels) { model in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(model.name)
-                                .fontWeight(.medium)
-                            Text(model.size)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        if model.isDownloaded {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                        } else if modelManager.isDownloading && modelManager.currentDownloadModel == model.id {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Button("Download") {
-                                Task {
-                                    do {
-                                        try await modelManager.download(modelId: model.id)
-                                        appState.selectedModel = model.id
-                                    } catch {
-                                        downloadError = error.localizedDescription
+                    VStack(spacing: 4) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 6) {
+                                    Text(model.name)
+                                        .fontWeight(.medium)
+                                    Text(model.size)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    if model.id == "large-v3-turbo" {
+                                        Text("Recommended")
+                                            .font(.caption2)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(.blue.opacity(0.2), in: Capsule())
+                                            .foregroundStyle(.blue)
                                     }
                                 }
+                                Text(model.description)
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
                             }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .disabled(modelManager.isDownloading)
+                            Spacer()
+                            if model.isDownloaded {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                            } else if modelManager.isDownloading && modelManager.currentDownloadModel == model.id {
+                                Button("Cancel") {
+                                    // Cancel not implemented for WhisperKit downloads yet
+                                }
+                                .controlSize(.small)
+                                .disabled(true)
+                            } else {
+                                Button("Download") {
+                                    Task {
+                                        do {
+                                            try await modelManager.download(modelId: model.id)
+                                            appState.selectedModel = model.id
+                                        } catch {
+                                            downloadError = error.localizedDescription
+                                        }
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .disabled(modelManager.isDownloading)
+                            }
+                        }
+
+                        if modelManager.isDownloading && modelManager.currentDownloadModel == model.id {
+                            ProgressView(value: modelManager.downloadProgress)
+                                .progressViewStyle(.linear)
+                            Text("\(Int(modelManager.downloadProgress * 100))%")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 6)
                     .padding(.horizontal, 8)
                 }
             }
@@ -228,6 +255,10 @@ struct OnboardingView: View {
                         .padding(4)
                 }
             }
+        }
+        .onAppear {
+            // Start pipeline early so user can test dictation before finishing
+            onComplete?()
         }
     }
 }
