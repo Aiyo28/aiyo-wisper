@@ -20,9 +20,13 @@
 	<string>1</string>
 	<key>LSUIElement</key>
 	<true/>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>AIYO Wisper needs microphone access to capture your voice for local speech-to-text transcription. Audio is processed entirely on your device.</string>
 	<key>NSAccessibilityUsageDescription</key>
 	<string>AIYO Wisper needs Accessibility access to register global hotkeys and type transcribed text into other applications.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>AIYO Wisper needs microphone access to capture your voice for local speech-to-text transcription. Audio is processed entirely on your device.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/ayal/aiyo-wisper/main/appcast.xml</string>
 </dict>
 </plist>
