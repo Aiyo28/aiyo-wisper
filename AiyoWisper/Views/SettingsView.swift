@@ -518,11 +518,25 @@ private struct CommandModeTab: View {
                         appState.commandModeEnabled = newValue
                     }
 
-                Text("Hold Option to speak a command that transforms selected text. Requires the AI model — download it in Settings → Formatting → AI Text Cleanup.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .multilineTextAlignment(.center)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Select text in any app, hold Option, and speak a command. The selected text will be transformed by AI.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Examples:")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.secondary)
+                        Text("\"make this more formal\"  ·  \"fix the grammar\"  ·  \"translate to Russian\"  ·  \"rewrite as bullet points\"  ·  \"make this shorter\"")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+
+                    Text("Requires the AI model — download it in Settings → Formatting.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
             }
 
             Section("Quality Preset") {
