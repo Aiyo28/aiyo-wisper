@@ -293,8 +293,10 @@ private struct FormattingTab: View {
                 Toggle("Use AI to clean up transcriptions", isOn: $useLLMCleanup)
                     .onChange(of: useLLMCleanup) { _, newValue in
                         appState.useLLMCleanup = newValue
+                        if newValue && !llmModelManager.isModelDownloaded && !llmModelManager.isDownloading {
+                            llmModelManager.download()
+                        }
                     }
-                    .disabled(!llmModelManager.isModelDownloaded)
 
                 Text("Removes filler words, fixes self-corrections, and adds punctuation using a local AI model. All processing stays on your device.")
                     .font(.caption)
