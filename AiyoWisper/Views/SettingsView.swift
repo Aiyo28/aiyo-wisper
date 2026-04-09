@@ -4,15 +4,17 @@ import ServiceManagement
 struct SettingsView: View {
     let appState: AppState
     let modelManager: ModelManager
+    let llmModelManager: LLMModelManager
+    @ObservedObject var updaterService: UpdaterService
     let shortcutManager: ShortcutManager
     let dictionaryManager: DictionaryManager
     var onModelSelected: (() -> Void)?
-    var onLLMSettingsChanged: (() -> Void)?
+    var onLLMModelChanged: (() -> Void)?
 
     var body: some View {
         TabView {
             Tab("General", systemImage: "gear") {
-                GeneralTab(appState: appState)
+                GeneralTab(appState: appState, updaterService: updaterService)
             }
 
             Tab("Input", systemImage: "keyboard") {
@@ -20,11 +22,11 @@ struct SettingsView: View {
             }
 
             Tab("Formatting", systemImage: "textformat") {
-                FormattingTab(appState: appState, dictionaryManager: dictionaryManager)
+                FormattingTab(appState: appState, llmModelManager: llmModelManager, dictionaryManager: dictionaryManager, onLLMModelChanged: onLLMModelChanged)
             }
 
             Tab("Command Mode", systemImage: "command") {
-                CommandModeTab(appState: appState, onLLMSettingsChanged: onLLMSettingsChanged)
+                CommandModeTab(appState: appState)
             }
 
             Tab("Transcription", systemImage: "cpu") {
@@ -39,6 +41,7 @@ struct SettingsView: View {
 
 private struct GeneralTab: View {
     let appState: AppState
+    @ObservedObject var updaterService: UpdaterService
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage(Constants.UserDefaultsKeys.characterByCharacterMode) private var characterByCharacterMode = false
     @State private var copiedEntryId: UUID?
@@ -117,6 +120,19 @@ private struct GeneralTab: View {
                     }
                     .controlSize(.small)
                 }
+            }
+
+            Section("Updates") {
+                Toggle("Check for updates automatically", isOn: Binding(
+                    get: { updaterService.automaticallyChecksForUpdates },
+                    set: { updaterService.automaticallyChecksForUpdates = $0 }
+                ))
+
+                Button("Check Now") {
+                    updaterService.checkForUpdates()
+                }
+                .controlSize(.small)
+                .disabled(!updaterService.canCheckForUpdates)
             }
 
             Section("About") {
@@ -250,22 +266,94 @@ private struct AddShortcutSheet: View {
 
 private struct FormattingTab: View {
     let appState: AppState
+    let llmModelManager: LLMModelManager
     let dictionaryManager: DictionaryManager
+    var onLLMModelChanged: (() -> Void)?
     @State private var preferredLanguage: String
     @State private var autoDetect: Bool
     @State private var minimalFormatting: Bool
+    @State private var useLLMCleanup: Bool
     @State private var showingAddDictionarySheet = false
 
-    init(appState: AppState, dictionaryManager: DictionaryManager) {
+    init(appState: AppState, llmModelManager: LLMModelManager, dictionaryManager: DictionaryManager, onLLMModelChanged: (() -> Void)?) {
         self.appState = appState
+        self.llmModelManager = llmModelManager
         self.dictionaryManager = dictionaryManager
+        self.onLLMModelChanged = onLLMModelChanged
         _preferredLanguage = State(initialValue: appState.preferredLanguage)
         _autoDetect = State(initialValue: appState.autoDetectLanguage)
         _minimalFormatting = State(initialValue: appState.minimalFormattingForEditors)
+        _useLLMCleanup = State(initialValue: appState.useLLMCleanup)
     }
 
     var body: some View {
         Form {
+            Section("AI Text Cleanup") {
+                Toggle("Use AI to clean up transcriptions", isOn: $useLLMCleanup)
+                    .onChange(of: useLLMCleanup) { _, newValue in
+                        appState.useLLMCleanup = newValue
+                    }
+                    .disabled(!llmModelManager.isModelDownloaded)
+
+                Text("Removes filler words, fixes self-corrections, and adds punctuation using a local AI model. All processing stays on your device.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(Constants.LLM.defaultModelName)
+                            .fontWeight(.medium)
+                        Text("\(Constants.LLM.defaultModelSize) — also used for command mode")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    Spacer()
+
+                    if llmModelManager.isModelDownloaded {
+                        Button("Delete", role: .destructive) {
+                            llmModelManager.deleteModel()
+                            useLLMCleanup = false
+                            appState.useLLMCleanup = false
+                            onLLMModelChanged?()
+                        }
+                        .controlSize(.small)
+                    } else if llmModelManager.isDownloading {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            ProgressView(value: llmModelManager.downloadProgress)
+                                .frame(width: 100)
+                            HStack(spacing: 8) {
+                                Text("\(Int(llmModelManager.downloadProgress * 100))%")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                Button("Cancel") {
+                                    llmModelManager.cancelDownload()
+                                }
+                                .controlSize(.mini)
+                            }
+                        }
+                    } else {
+                        Button("Download") {
+                            llmModelManager.download()
+                            Task {
+                                while llmModelManager.isDownloading {
+                                    try? await Task.sleep(for: .milliseconds(500))
+                                }
+                                if llmModelManager.isModelDownloaded {
+                                    onLLMModelChanged?()
+                                }
+                            }
+                        }
+                        .controlSize(.small)
+                    }
+                }
+
+                if let error = llmModelManager.downloadError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+
             Section("Language") {
                 Picker("Preferred language", selection: $preferredLanguage) {
                     ForEach(Constants.Language.available, id: \.code) { lang in
@@ -398,42 +486,16 @@ private struct AddDictionaryEntrySheet: View {
 
 private struct CommandModeTab: View {
     let appState: AppState
-    var onLLMSettingsChanged: (() -> Void)?
 
     @State private var commandModeEnabled: Bool
-    @State private var llmEndpoint: String
-    @State private var llmModel: String
-    @State private var connectionStatus: ConnectionStatus = .idle
-    @State private var ollamaModels: [OllamaModel] = []
-    @State private var isLoadingModels = false
-    @State private var pullTask: Task<Void, Never>?
-    @State private var pullingModelName: String?
-    @State private var pullProgress: Double = 0
-    @State private var pullError: String?
 
     @AppStorage(Constants.UserDefaultsKeys.llmPreset) private var presetRaw: String = Constants.LLM.defaultPreset
     @AppStorage(Constants.UserDefaultsKeys.llmTemperature) private var temperature: Double = Constants.LLM.defaultTemperature
-    @AppStorage(Constants.UserDefaultsKeys.llmRepeatPenalty) private var repeatPenalty: Double = Constants.LLM.defaultRepeatPenalty
-    @AppStorage(Constants.UserDefaultsKeys.llmFrequencyPenalty) private var frequencyPenalty: Double = Constants.LLM.defaultFrequencyPenalty
     @AppStorage(Constants.UserDefaultsKeys.llmMaxTokens) private var maxTokens: Int = Constants.LLM.defaultMaxTokens
 
-    private var preset: LLMPreset {
-        LLMPreset(rawValue: presetRaw) ?? .balanced
-    }
-
-    private enum ConnectionStatus: Equatable {
-        case idle
-        case testing
-        case connected
-        case notRunning
-    }
-
-    init(appState: AppState, onLLMSettingsChanged: (() -> Void)?) {
+    init(appState: AppState) {
         self.appState = appState
-        self.onLLMSettingsChanged = onLLMSettingsChanged
         _commandModeEnabled = State(initialValue: appState.commandModeEnabled)
-        _llmEndpoint = State(initialValue: appState.llmEndpoint)
-        _llmModel = State(initialValue: appState.llmModel)
     }
 
     var body: some View {
@@ -443,337 +505,91 @@ private struct CommandModeTab: View {
                     .onChange(of: commandModeEnabled) { _, newValue in
                         appState.commandModeEnabled = newValue
                     }
+
+                Text("Hold Option to speak a command that transforms selected text. Requires the AI model — download it in Settings → Formatting → AI Text Cleanup.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
-            Section("LLM Server") {
-                TextField("Endpoint URL", text: $llmEndpoint)
-                    .textFieldStyle(.roundedBorder)
-                    .onChange(of: llmEndpoint) { _, newValue in
-                        appState.llmEndpoint = newValue
-                        onLLMSettingsChanged?()
+            Section("Quality Preset") {
+                Picker("Preset", selection: Binding(
+                    get: { presetRaw },
+                    set: { newValue in
+                        presetRaw = newValue
+                        applyPreset(newValue)
                     }
-                    .onSubmit { checkConnection() }
+                )) {
+                    Text("Fast").tag("fast")
+                    Text("Balanced").tag("balanced")
+                    Text("Creative").tag("creative")
+                }
+                .pickerStyle(.segmented)
+            }
 
-                HStack {
-                    Text("Status")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    switch connectionStatus {
-                    case .idle:
-                        Label("Unknown", systemImage: "circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    case .testing:
-                        ProgressView()
+            Section {
+                DisclosureGroup("Advanced") {
+                    VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Temperature")
+                                    .font(.caption)
+                                Spacer()
+                                Text(String(format: "%.1f", temperature))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Slider(value: $temperature, in: 0.0...1.0, step: 0.1)
+                            HStack {
+                                Text("Deterministic").font(.caption2).foregroundStyle(.tertiary)
+                                Spacer()
+                                Text("Creative").font(.caption2).foregroundStyle(.tertiary)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Max Tokens")
+                                    .font(.caption)
+                                Spacer()
+                                Text("\(maxTokens)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Slider(value: Binding(
+                                get: { Double(maxTokens) },
+                                set: { maxTokens = Int($0) }
+                            ), in: 256...4096, step: 128)
+                        }
+
+                        HStack {
+                            Spacer()
+                            Button("Reset to Balanced") {
+                                applyPreset("balanced")
+                            }
                             .controlSize(.small)
-                    case .connected:
-                        Label("Connected", systemImage: "circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    case .notRunning:
-                        Label("Not Running", systemImage: "circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                        }
                     }
                 }
-            }
-
-            if connectionStatus == .notRunning {
-                Section {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Ollama is required for command mode.")
-                            .font(.caption)
-                        Text("Download at ollama.ai")
-                            .font(.caption)
-                            .foregroundStyle(.tint)
-                    }
-                }
-            }
-
-            if connectionStatus == .connected {
-                modelSection
-                presetSection
-                advancedSection
             }
         }
         .formStyle(.grouped)
-        .onAppear { checkConnection() }
     }
 
-    // MARK: - Model Section
-
-    @ViewBuilder
-    private var modelSection: some View {
-        Section("Model") {
-            if isLoadingModels {
-                ProgressView("Loading models...")
-                    .controlSize(.small)
-            } else if ollamaModels.isEmpty {
-                Text("No models found. Pull a model to get started.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            ForEach(ollamaModels, id: \.name) { model in
-                ollamaModelRow(model)
-            }
-
-            ForEach(registryModelsNotPulled, id: \.name) { info in
-                unpulledModelRow(info)
-            }
+    private func applyPreset(_ preset: String) {
+        switch preset {
+        case "fast":
+            temperature = 0.2
+            maxTokens = 512
+        case "balanced":
+            temperature = Constants.LLM.defaultTemperature
+            maxTokens = Constants.LLM.defaultMaxTokens
+        case "creative":
+            temperature = 0.7
+            maxTokens = 2048
+        default:
+            break
         }
-    }
-
-    private func ollamaModelRow(_ model: OllamaModel) -> some View {
-        let isActive = llmModel == model.name
-        let info = LLMModelInfo.find(model.name)
-
-        return HStack {
-            Circle()
-                .fill(isActive ? Color.green : Color.blue)
-                .frame(width: 8, height: 8)
-                .accessibilityLabel(isActive ? "Active" : "Downloaded")
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(model.name)
-                    .fontWeight(.medium)
-                Text(info?.description ?? "Custom model")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-
-            Spacer()
-
-            if isActive {
-                Text("Active")
-                    .font(.caption2)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.green.opacity(0.2), in: Capsule())
-                    .foregroundStyle(.green)
-            } else {
-                Button("Select") {
-                    llmModel = model.name
-                    appState.llmModel = model.name
-                    applyPreset(preset, for: model.name)
-                    onLLMSettingsChanged?()
-                }
-                .controlSize(.small)
-            }
-        }
-    }
-
-    private func unpulledModelRow(_ info: LLMModelInfo) -> some View {
-        let isPulling = pullingModelName == info.name
-
-        return HStack {
-            Circle()
-                .fill(isPulling ? Color.yellow : Color.gray)
-                .frame(width: 8, height: 8)
-                .accessibilityLabel(isPulling ? "Downloading" : "Not downloaded")
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(info.name)
-                    .fontWeight(.medium)
-                    .foregroundStyle(isPulling ? .primary : .secondary)
-                HStack(spacing: 4) {
-                    Text(info.size)
-                    Text("—")
-                    Text(info.description)
-                }
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-
-                if isPulling {
-                    ProgressView(value: pullProgress)
-                        .progressViewStyle(.linear)
-                    Text("\(Int(pullProgress * 100))%")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let error = pullError, pullingModelName == nil && info.name == pullError {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-            }
-
-            Spacer()
-
-            if isPulling {
-                Button("Cancel") {
-                    pullTask?.cancel()
-                    pullTask = nil
-                    pullingModelName = nil
-                    pullProgress = 0
-                }
-                .controlSize(.small)
-            } else {
-                Button("Pull") {
-                    startPull(info.name)
-                }
-                .controlSize(.small)
-                .disabled(pullingModelName != nil)
-            }
-        }
-        .opacity(isPulling ? 1 : 0.6)
-    }
-
-    private var registryModelsNotPulled: [LLMModelInfo] {
-        let pulledNames = Set(ollamaModels.map(\.name))
-        return LLMModelInfo.registry.filter { !pulledNames.contains($0.name) }
-    }
-
-    // MARK: - Preset Section
-
-    @ViewBuilder
-    private var presetSection: some View {
-        Section("Quality Preset") {
-            Picker("Preset", selection: Binding(
-                get: { presetRaw },
-                set: { newValue in
-                    presetRaw = newValue
-                    if let p = LLMPreset(rawValue: newValue) {
-                        applyPreset(p, for: llmModel)
-                    }
-                }
-            )) {
-                Text("Fast").tag("fast")
-                Text("Balanced").tag("balanced")
-                Text("Creative").tag("creative")
-                if presetRaw == "custom" {
-                    Text("Custom").tag("custom")
-                }
-            }
-            .pickerStyle(.segmented)
-        }
-    }
-
-    // MARK: - Advanced Section
-
-    @ViewBuilder
-    private var advancedSection: some View {
-        Section {
-            DisclosureGroup("Advanced") {
-                VStack(alignment: .leading, spacing: 16) {
-                    sliderRow("Temperature", value: $temperature, range: 0.0...1.0, step: 0.1, low: "Deterministic", high: "Creative")
-                    sliderRow("Repetition Penalty", value: $repeatPenalty, range: 1.0...2.0, step: 0.1, low: "Off (1.0)", high: "Strong (2.0)")
-                    sliderRow("Frequency Penalty", value: $frequencyPenalty, range: 0.0...2.0, step: 0.1, low: "Off (0.0)", high: "Strong (2.0)")
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text("Max Tokens")
-                                .font(.caption)
-                            Spacer()
-                            Text("\(maxTokens)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Slider(value: Binding(
-                            get: { Double(maxTokens) },
-                            set: { maxTokens = Int($0); markCustom() }
-                        ), in: 256...4096, step: 128)
-                    }
-
-                    HStack {
-                        Spacer()
-                        Button("Reset to Preset Defaults") {
-                            if let p = LLMPreset(rawValue: presetRaw == "custom" ? "balanced" : presetRaw) {
-                                presetRaw = p.rawValue
-                                applyPreset(p, for: llmModel)
-                            }
-                        }
-                        .controlSize(.small)
-                    }
-                }
-            }
-        }
-    }
-
-    private func sliderRow(_ label: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double, low: String, high: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(label)
-                    .font(.caption)
-                Spacer()
-                Text(String(format: "%.1f", value.wrappedValue))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: Binding(
-                get: { value.wrappedValue },
-                set: { value.wrappedValue = $0; markCustom() }
-            ), in: range, step: step)
-            HStack {
-                Text(low).font(.caption2).foregroundStyle(.tertiary)
-                Spacer()
-                Text(high).font(.caption2).foregroundStyle(.tertiary)
-            }
-        }
-    }
-
-    // MARK: - Actions
-
-    private func checkConnection() {
-        connectionStatus = .testing
-        let service = OllamaService(llmEndpoint: llmEndpoint)
-        Task {
-            let running = await service.isRunning()
-            connectionStatus = running ? .connected : .notRunning
-            if running {
-                await loadModels()
-            }
-        }
-    }
-
-    private func loadModels() async {
-        isLoadingModels = true
-        let service = OllamaService(llmEndpoint: llmEndpoint)
-        do {
-            ollamaModels = try await service.listModels()
-        } catch {
-            ollamaModels = []
-        }
-        isLoadingModels = false
-    }
-
-    private func startPull(_ name: String) {
-        pullError = nil
-        pullingModelName = name
-        pullProgress = 0
-        let service = OllamaService(llmEndpoint: llmEndpoint)
-        pullTask = Task {
-            do {
-                try await service.pullModel(name: name) { progress in
-                    Task { @MainActor in
-                        pullProgress = progress
-                    }
-                }
-                pullingModelName = nil
-                pullProgress = 0
-                await loadModels()
-            } catch is CancellationError {
-                pullingModelName = nil
-                pullProgress = 0
-            } catch {
-                pullError = error.localizedDescription
-                pullingModelName = nil
-                pullProgress = 0
-            }
-        }
-    }
-
-    private func applyPreset(_ preset: LLMPreset, for model: String) {
-        let params = LLMModelInfo.presetParameters(for: model, preset: preset)
-        temperature = params.temperature
-        repeatPenalty = params.repeatPenalty
-        frequencyPenalty = params.frequencyPenalty
-        maxTokens = params.maxTokens
-    }
-
-    private func markCustom() {
-        presetRaw = "custom"
+        presetRaw = preset
     }
 }
 
