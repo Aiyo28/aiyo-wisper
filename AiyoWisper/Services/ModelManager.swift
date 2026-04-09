@@ -4,50 +4,32 @@ import WhisperKit
 
 @MainActor @Observable
 final class ModelManager {
-    enum ModelCategory: String, CaseIterable {
-        case standard = "Standard Whisper"
-        case optimized = "Optimized (Recommended)"
-    }
-
     struct ModelInfo: Identifiable {
         let id: String
         let name: String
         let variant: String          // Full WhisperKit variant name for download
         let size: String
-        let category: ModelCategory
         let description: String
         let englishOnly: Bool
         var isDownloaded: Bool
     }
 
     private(set) var availableModels: [ModelInfo] = [
-        // Standard Whisper models
-        ModelInfo(id: "tiny", name: "Tiny", variant: "openai_whisper-tiny",
-                  size: "75 MB", category: .standard,
-                  description: "Fastest, least accurate", englishOnly: false, isDownloaded: false),
-        ModelInfo(id: "base", name: "Base", variant: "openai_whisper-base",
-                  size: "142 MB", category: .standard,
-                  description: "Good balance for quick tasks", englishOnly: false, isDownloaded: false),
-        ModelInfo(id: "small", name: "Small", variant: "openai_whisper-small",
-                  size: "466 MB", category: .standard,
-                  description: "Better accuracy, moderate speed", englishOnly: false, isDownloaded: false),
-        ModelInfo(id: "medium", name: "Medium", variant: "openai_whisper-medium",
-                  size: "1.5 GB", category: .standard,
-                  description: "High accuracy, slower", englishOnly: false, isDownloaded: false),
-        ModelInfo(id: "large-v3", name: "Large v3", variant: "openai_whisper-large-v3",
-                  size: "3 GB", category: .standard,
-                  description: "Best accuracy, slowest", englishOnly: false, isDownloaded: false),
-
-        // Optimized models — use exact folder names with size suffix to avoid ambiguity
-        ModelInfo(id: "large-v3-turbo", name: "Large v3 Turbo", variant: "openai_whisper-large-v3_turbo_954MB",
-                  size: "954 MB", category: .optimized,
-                  description: "Near large-v3 accuracy, 6x faster, 99+ languages", englishOnly: false, isDownloaded: false),
-        ModelInfo(id: "distil-large-v3", name: "Distil Large v3", variant: "distil-whisper_distil-large-v3_594MB",
-                  size: "594 MB", category: .optimized,
-                  description: "Near large-v3 accuracy, 5-6x faster, English only", englishOnly: true, isDownloaded: false),
+        ModelInfo(id: "large-v3-turbo", name: "Turbo", variant: "openai_whisper-large-v3_turbo_954MB",
+                  size: "954 MB",
+                  description: "Best all-round — 99+ languages, near large-v3 accuracy at 6x speed",
+                  englishOnly: false, isDownloaded: false),
+        ModelInfo(id: "distil-large-v3", name: "English Turbo", variant: "distil-whisper_distil-large-v3_594MB",
+                  size: "594 MB",
+                  description: "Fastest for English — max accuracy, optimized for English only",
+                  englishOnly: true, isDownloaded: false),
+        ModelInfo(id: "tiny", name: "Fast", variant: "openai_whisper-tiny",
+                  size: "66 MB",
+                  description: "Lightweight — for low bandwidth or future iPhone use. Multilingual.",
+                  englishOnly: false, isDownloaded: false),
     ]
 
-    private(set) var selectedModelId: String = "tiny"
+    private(set) var selectedModelId: String = "large-v3-turbo"
     private(set) var downloadProgress: Double = 0
     var isDownloading = false
     var currentDownloadModel: String?
@@ -60,10 +42,6 @@ final class ModelManager {
 
     init() {
         refreshDownloadedModels()
-    }
-
-    func models(for category: ModelCategory) -> [ModelInfo] {
-        availableModels.filter { $0.category == category }
     }
 
     func refreshDownloadedModels() {

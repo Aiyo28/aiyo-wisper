@@ -603,42 +603,40 @@ private struct TranscriptionTab: View {
 
     var body: some View {
         Form {
-            ForEach(ModelManager.ModelCategory.allCases, id: \.rawValue) { category in
-                Section(category.rawValue) {
-                    ForEach(modelManager.models(for: category)) { model in
-                        ModelRow(
-                            model: model,
-                            isActive: appState.selectedModel == model.id,
-                            isDownloading: modelManager.isDownloading && modelManager.currentDownloadModel == model.id,
-                            canDownload: !modelManager.isDownloading,
-                            showLanguageWarning: model.englishOnly && (appState.autoDetectLanguage || appState.preferredLanguage != "en"),
-                            onSelect: {
-                                appState.selectedModel = model.id
-                                onModelSelected?()
-                            },
-                            onDownload: {
-                                Task {
-                                    do {
-                                        try await modelManager.download(modelId: model.id)
-                                    } catch {
-                                        downloadError = error.localizedDescription
-                                    }
-                                }
-                            },
-                            onDelete: {
+            Section("Speech Recognition Model") {
+                ForEach(modelManager.availableModels) { model in
+                    ModelRow(
+                        model: model,
+                        isActive: appState.selectedModel == model.id,
+                        isDownloading: modelManager.isDownloading && modelManager.currentDownloadModel == model.id,
+                        canDownload: !modelManager.isDownloading,
+                        showLanguageWarning: model.englishOnly && (appState.autoDetectLanguage || appState.preferredLanguage != "en"),
+                        onSelect: {
+                            appState.selectedModel = model.id
+                            onModelSelected?()
+                        },
+                        onDownload: {
+                            Task {
                                 do {
-                                    try modelManager.deleteModel(model.id)
+                                    try await modelManager.download(modelId: model.id)
                                 } catch {
-                                    downloadError = "Failed to delete: \(error.localizedDescription)"
-                                }
-                                if appState.selectedModel == model.id {
-                                    if let first = modelManager.availableModels.first(where: \.isDownloaded) {
-                                        appState.selectedModel = first.id
-                                    }
+                                    downloadError = error.localizedDescription
                                 }
                             }
-                        )
-                    }
+                        },
+                        onDelete: {
+                            do {
+                                try modelManager.deleteModel(model.id)
+                            } catch {
+                                downloadError = "Failed to delete: \(error.localizedDescription)"
+                            }
+                            if appState.selectedModel == model.id {
+                                if let first = modelManager.availableModels.first(where: \.isDownloaded) {
+                                    appState.selectedModel = first.id
+                                }
+                            }
+                        }
+                    )
                 }
             }
 

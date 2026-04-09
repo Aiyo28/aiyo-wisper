@@ -15,7 +15,7 @@ enum Constants {
     }
 
     enum Models {
-        static let defaultModel = "tiny"
+        static let defaultModel = "large-v3-turbo"
         static let supportDirectory = "AiyoWisper/Models"
 
         static var modelsDirectory: URL {
@@ -90,7 +90,7 @@ enum Constants {
             "com.jetbrains.intellij",
         ]
 
-        static let smallModels: Set<String> = ["tiny", "base"] // Models that need punctuation polish
+        static let smallModels: Set<String> = ["tiny"] // Models that need extra punctuation polish
     }
 
     enum LLM {
