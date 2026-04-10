@@ -17,19 +17,19 @@ final class ModelManager {
     private(set) var availableModels: [ModelInfo] = [
         ModelInfo(id: "small", name: "Small", variant: "openai_whisper-small_216MB",
                   size: "216 MB",
-                  description: "Recommended — fast, multilingual (99+ languages), great with AI cleanup",
+                  description: "Best balance of speed and quality. All languages.",
                   englishOnly: false, isDownloaded: false),
         ModelInfo(id: "large-v3-turbo", name: "Turbo", variant: "openai_whisper-large-v3-v20240930_turbo_632MB",
                   size: "632 MB",
-                  description: "Max quality — Neural Engine optimized, 99+ languages",
+                  description: "Highest accuracy. All languages. Larger download.",
                   englishOnly: false, isDownloaded: false),
         ModelInfo(id: "distil-large-v3", name: "English Turbo", variant: "distil-whisper_distil-large-v3_turbo_600MB",
                   size: "600 MB",
-                  description: "Best for English — max accuracy, Neural Engine optimized",
+                  description: "Fastest and most accurate for English only.",
                   englishOnly: true, isDownloaded: false),
         ModelInfo(id: "tiny", name: "Lightweight", variant: "openai_whisper-tiny",
                   size: "77 MB",
-                  description: "Minimal footprint — multilingual, for quick notes or future iPhone",
+                  description: "Smallest download. Good for quick notes. All languages.",
                   englishOnly: false, isDownloaded: false),
     ]
 
