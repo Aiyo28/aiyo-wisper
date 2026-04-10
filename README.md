@@ -29,15 +29,15 @@ The selected text gets replaced with the transformed version.
 
 ## How it compares
 
-| | AIYO Wisper | Ghost Pepper | SuperWhisper |
+| | AIYO Wisper | SuperWhisper | Wispr Flow |
 |---|:---:|:---:|:---:|
-| Local processing | Yes | Yes | Cloud |
+| Price | **Free** | $10/mo | $15/mo |
+| Local processing | Yes | Cloud | Cloud |
 | Command mode | Yes | — | — |
 | Voice shortcuts | Yes | — | — |
-| AI text cleanup | Yes | Yes | — |
-| Default download | 613 MB | ~3.5 GB | N/A |
-| Price | **Free** | Free | $10/mo |
-| Open source | MIT | MIT | No |
+| AI text cleanup | Yes | Yes | Yes |
+| Open source | MIT | No | No |
+| Privacy | No data leaves Mac | Audio sent to cloud | Audio sent to cloud |
 
 ## Requirements
 
