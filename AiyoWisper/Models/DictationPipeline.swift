@@ -27,8 +27,10 @@ final class DictationPipeline {
         self.llmBackend = backend
         if let backend {
             commandProcessor = CommandProcessor(backend: backend)
+            print("[Pipeline] LLM backend wired — command mode available")
         } else {
             commandProcessor = nil
+            print("[Pipeline] LLM backend removed — command mode disabled")
         }
     }
 
@@ -151,6 +153,7 @@ final class DictationPipeline {
             let result = try await transcriptionEngine.transcribe(
                 audioSamples: samples,
                 language: language,
+                preferredLanguage: appState.preferredLanguage,
                 vocabularyWords: dictionaryManager.vocabularyWords
             )
 
@@ -197,8 +200,12 @@ final class DictationPipeline {
             print("[Pipeline] startCommandRecording blocked — status: \(appState.status), isProcessing: \(isProcessing)")
             return
         }
-        guard appState.commandModeEnabled else { return }
+        guard appState.commandModeEnabled else {
+            print("[Pipeline] Command mode disabled in settings")
+            return
+        }
         guard commandProcessor != nil else {
+            print("[Pipeline] Command processor is nil — LLM backend not wired")
             appState.errorMessage = "Download AI model in Settings → Formatting to enable command mode"
             return
         }
@@ -256,7 +263,7 @@ final class DictationPipeline {
 
         do {
             let language: String? = appState.autoDetectLanguage ? nil : appState.preferredLanguage
-            let result = try await transcriptionEngine.transcribe(audioSamples: samples, language: language)
+            let result = try await transcriptionEngine.transcribe(audioSamples: samples, language: language, preferredLanguage: appState.preferredLanguage)
 
             guard !result.text.isEmpty else {
                 appState.status = .idle
@@ -266,8 +273,10 @@ final class DictationPipeline {
             }
 
             appState.lastCommand = result.text
+            print("[Command] Transcribed command: \(result.text)")
 
             guard let selectedText = TextInjector.readSelection(), !selectedText.isEmpty else {
+                print("[Command] Failed to read selection — no text selected")
                 appState.errorMessage = "No text selected — select text before using command mode"
                 appState.status = .error
                 appState.isCommandMode = false
@@ -275,10 +284,12 @@ final class DictationPipeline {
                 scheduleErrorReset()
                 return
             }
+            print("[Command] Selected text: \(selectedText.prefix(100))")
 
             appState.status = .commandProcessing
 
             guard let processor = commandProcessor else {
+                print("[Command] Command processor is nil")
                 appState.errorMessage = "Command processor not configured"
                 appState.status = .error
                 appState.isCommandMode = false
@@ -287,9 +298,12 @@ final class DictationPipeline {
                 return
             }
 
+            print("[Command] Sending to LLM...")
             let transformed = try await processor.process(command: result.text, selectedText: selectedText, parameters: appState.llmParameters)
+            print("[Command] LLM result: \(transformed.prefix(200))")
 
             guard !transformed.isEmpty else {
+                print("[Command] LLM returned empty — skipping")
                 appState.status = .idle
                 appState.isCommandMode = false
                 isProcessing = false

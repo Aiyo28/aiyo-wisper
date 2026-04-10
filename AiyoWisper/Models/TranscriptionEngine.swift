@@ -20,7 +20,7 @@ final class TranscriptionEngine: @unchecked Sendable {
         isModelLoaded = true
     }
 
-    func transcribe(audioSamples: [Float], language: String?, vocabularyWords: [String] = []) async throws -> TranscriptionResult {
+    func transcribe(audioSamples: [Float], language: String?, preferredLanguage: String = "en", vocabularyWords: [String] = []) async throws -> TranscriptionResult {
         guard let whisperKit else {
             throw TranscriptionError.modelNotLoaded
         }
@@ -30,8 +30,11 @@ final class TranscriptionEngine: @unchecked Sendable {
             promptTokens = vocabularyWords.flatMap { tokenizer.encode(text: $0) }
         }
 
+        // When language is set explicitly, force it.
+        // When auto-detect (language == nil), still pass preferred as hint
+        // to avoid hallucinating random languages on short utterances.
         let options = DecodingOptions(
-            language: language,
+            language: language ?? preferredLanguage,
             detectLanguage: language == nil ? true : nil,
             promptTokens: promptTokens
         )
