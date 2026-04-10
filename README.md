@@ -1,59 +1,84 @@
 # AIYO Wisper
 
-Free, local voice-to-text for macOS. Hold a key, speak, text appears at your cursor. Everything runs on your device — no cloud, no subscription.
+**macOS voice-to-text with AI command mode — local, private, free.**
 
-## Features
+Hold a key, speak, text appears at your cursor. Select text and speak a command to transform it. No cloud. No subscription. Everything runs on your Mac.
 
-- **Hold-to-talk dictation** — Hold Control, speak, release. Text appears in any app.
-- **AI text cleanup** — Built-in Qwen 3.5 4B removes filler words, fixes self-corrections, adds punctuation. All local.
-- **Command mode** — Hold Option to transform selected text with voice commands ("make this formal", "translate to Spanish").
-- **Voice shortcuts** — Custom trigger phrases that expand into longer text during dictation.
-- **Multi-model** — Choose from 7 Whisper models (75 MB to 3 GB) for your speed/accuracy tradeoff.
-- **Auto-update** — Sparkle-powered updates from GitHub Releases.
+<!-- TODO: Replace with actual GIF -->
+<!-- ![AIYO Wisper Demo](demo.gif) -->
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+[**Download DMG**](https://github.com/ayal/aiyo-wisper/releases/latest) · [Build from Source](#build-from-source)
+
+---
+
+## What it does
+
+**Dictation** — Hold Control, speak, release. Text appears wherever your cursor is. In any app.
+
+**AI Cleanup** — A local AI model removes filler words ("um", "like"), fixes self-corrections ("no wait, I mean..."), and adds punctuation. Automatically.
+
+**Command Mode** — Select text, hold Option, speak a command:
+- "make this more formal"
+- "fix the grammar"
+- "translate to Russian"
+- "rewrite as bullet points"
+- "make this shorter"
+
+The selected text gets replaced with the transformed version.
+
+**Voice Shortcuts** — Create trigger phrases that expand during dictation. Say "my email" and it types your full email address.
+
+## How it compares
+
+| | AIYO Wisper | Ghost Pepper | SuperWhisper |
+|---|:---:|:---:|:---:|
+| Local processing | Yes | Yes | Cloud |
+| Command mode | Yes | — | — |
+| Voice shortcuts | Yes | — | — |
+| AI text cleanup | Yes | Yes | — |
+| Default download | 613 MB | ~3.5 GB | N/A |
+| Price | **Free** | Free | $10/mo |
+| Open source | MIT | MIT | No |
 
 ## Requirements
 
 - macOS 15.0+
 - Apple Silicon (M1 or later)
-- ~75 MB minimum (tiny model) — up to ~5.5 GB with large Whisper + AI cleanup model
 
 ## Install
 
-1. Download the latest DMG from [Releases](https://github.com/ayal/aiyo-wisper/releases)
+1. Download the latest DMG from [Releases](https://github.com/ayal/aiyo-wisper/releases/latest)
 2. Drag to Applications
-3. Launch — grant Microphone and Accessibility permissions when prompted
-4. Download a Whisper model in Settings → Transcription
+3. Launch — grant Microphone and Accessibility permissions
+4. Pick a speech model in Settings → Transcription
 
-## Usage
+## Models
 
-| Action | Hotkey | What happens |
-|--------|--------|-------------|
-| Dictate | Hold **Control** | Speak → text appears at cursor |
-| Command mode | Hold **Option** | Speak a command → transforms selected text |
+| Model | Size | Best for |
+|-------|------|----------|
+| **Small** (default) | 216 MB | Best balance of speed and quality. All languages. |
+| Turbo | 632 MB | Highest accuracy. All languages. |
+| English Turbo | 600 MB | Fastest and most accurate for English only. |
+| Lightweight | 77 MB | Smallest download. Quick notes. All languages. |
 
-### AI Text Cleanup
+AI text cleanup uses **Qwen3 0.6B** (397 MB) — downloaded separately in Settings → Formatting.
 
-Go to Settings → Formatting → AI Text Cleanup and download the model (~2.5 GB). Once downloaded, your dictation is automatically cleaned up by a local LLM — filler words removed, self-corrections fixed, punctuation added.
+## Privacy
 
-The same model powers command mode.
+**No audio or text ever leaves your device.** All speech recognition (WhisperKit) and AI cleanup (Qwen3 via llama.cpp) run entirely on your Mac using the Neural Engine and GPU. No cloud APIs, no telemetry, no accounts.
 
 ## Build from Source
 
 ```bash
-# Prerequisites: Xcode 16+, XcodeGen
 brew install xcodegen
-
-# Clone and build
 git clone https://github.com/ayal/aiyo-wisper.git
 cd aiyo-wisper
 xcodegen generate
 open AiyoWisper.xcodeproj
-# Build & Run (Cmd+R)
+# Cmd+R to build and run
 ```
-
-## Privacy
-
-**All processing happens on your device.** No audio, text, or telemetry ever leaves your Mac. Whisper models and the LLM run entirely locally via CoreML and llama.cpp.
 
 ## Tech Stack
 
@@ -62,10 +87,9 @@ open AiyoWisper.xcodeproj
 | Language | Swift 6 |
 | UI | SwiftUI |
 | Speech-to-text | [WhisperKit](https://github.com/argmaxinc/WhisperKit) (CoreML) |
-| Text cleanup | [LLM.swift](https://github.com/eastriverlee/LLM.swift) + Qwen 3.5 4B |
+| AI cleanup | [LLM.swift](https://github.com/eastriverlee/LLM.swift) + Qwen3 0.6B |
 | Text injection | CGEvent keyboard simulation |
 | Auto-update | [Sparkle](https://sparkle-project.org/) |
-| Build system | XcodeGen |
 
 ## License
 
