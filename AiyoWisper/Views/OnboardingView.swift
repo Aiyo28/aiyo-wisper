@@ -169,7 +169,7 @@ struct OnboardingView: View {
                                     Text(model.size)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
-                                    if model.id == "large-v3-turbo" {
+                                    if model.id == "small" {
                                         Text("Recommended")
                                             .font(.caption2)
                                             .padding(.horizontal, 6)

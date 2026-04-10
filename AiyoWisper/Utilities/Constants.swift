@@ -15,7 +15,7 @@ enum Constants {
     }
 
     enum Models {
-        static let defaultModel = "large-v3-turbo"
+        static let defaultModel = "small"
         static let supportDirectory = "AiyoWisper/Models"
 
         static var modelsDirectory: URL {
