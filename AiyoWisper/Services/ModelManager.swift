@@ -15,21 +15,25 @@ final class ModelManager {
     }
 
     private(set) var availableModels: [ModelInfo] = [
-        ModelInfo(id: "large-v3-turbo", name: "Turbo", variant: "openai_whisper-large-v3_turbo_954MB",
-                  size: "954 MB",
-                  description: "Best all-round — 99+ languages, near large-v3 accuracy at 6x speed",
+        ModelInfo(id: "small", name: "Small", variant: "openai_whisper-small_216MB",
+                  size: "216 MB",
+                  description: "Recommended — fast, multilingual (99+ languages), great with AI cleanup",
                   englishOnly: false, isDownloaded: false),
-        ModelInfo(id: "distil-large-v3", name: "English Turbo", variant: "distil-whisper_distil-large-v3_594MB",
-                  size: "594 MB",
-                  description: "Fastest for English — max accuracy, optimized for English only",
+        ModelInfo(id: "large-v3-turbo", name: "Turbo", variant: "openai_whisper-large-v3-v20240930_turbo_632MB",
+                  size: "632 MB",
+                  description: "Max quality — Neural Engine optimized, 99+ languages",
+                  englishOnly: false, isDownloaded: false),
+        ModelInfo(id: "distil-large-v3", name: "English Turbo", variant: "distil-whisper_distil-large-v3_turbo_600MB",
+                  size: "600 MB",
+                  description: "Best for English — max accuracy, Neural Engine optimized",
                   englishOnly: true, isDownloaded: false),
-        ModelInfo(id: "tiny", name: "Fast", variant: "openai_whisper-tiny",
-                  size: "66 MB",
-                  description: "Lightweight — for low bandwidth or future iPhone use. Multilingual.",
+        ModelInfo(id: "tiny", name: "Lightweight", variant: "openai_whisper-tiny",
+                  size: "77 MB",
+                  description: "Minimal footprint — multilingual, for quick notes or future iPhone",
                   englishOnly: false, isDownloaded: false),
     ]
 
-    private(set) var selectedModelId: String = "large-v3-turbo"
+    private(set) var selectedModelId: String = "small"
     private(set) var downloadProgress: Double = 0
     var isDownloading = false
     var currentDownloadModel: String?
