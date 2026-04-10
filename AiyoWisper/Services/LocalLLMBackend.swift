@@ -19,7 +19,7 @@ final class LocalLLMBackend: @unchecked Sendable {
             topP: 0.9,
             temp: 0.3,
             repeatPenalty: 1.1,
-            maxTokenCount: 1024
+            maxTokenCount: 256
         ) else {
             throw LLMError.modelNotLoaded
         }
@@ -40,13 +40,11 @@ extension LocalLLMBackend: LLMBackend {
 
         llm.temp = Float(parameters.temperature)
         llm.historyLimit = 0
-
-        if llm.template == nil {
-            llm.template = .chatML(systemPrompt)
-        }
+        llm.template = .chatML(systemPrompt)
 
         let output = await llm.getCompletion(from: userPrompt)
         llm.history = []
+        llm.reset()
 
         let cleaned = output.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else {
