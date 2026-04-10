@@ -55,7 +55,7 @@ targets:
         LSUIElement: true
         NSMicrophoneUsageDescription: "AIYO Wisper needs microphone access to capture your voice for local speech-to-text transcription. Audio is processed entirely on your device."
         NSAccessibilityUsageDescription: "AIYO Wisper needs Accessibility access to register global hotkeys and type transcribed text into other applications."
-        SUFeedURL: "https://raw.githubusercontent.com/ayal/aiyo-wisper/main/appcast.xml"
+        SUFeedURL: "https://raw.githubusercontent.com/Aiyo28/aiyo-wisper/main/appcast.xml"
         SUEnableAutomaticChecks: true
 
   AiyoWisperTests:

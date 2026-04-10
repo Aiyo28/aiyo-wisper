@@ -6,7 +6,7 @@ Hold a key, speak, text appears at your cursor. Select text and speak a command 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-[**Download DMG**](https://github.com/ayal/aiyo-wisper/releases/latest) · [Build from Source](#build-from-source)
+[**Download DMG**](https://github.com/Aiyo28/aiyo-wisper/releases/latest) · [Build from Source](#build-from-source)
 
 ---
 
@@ -46,7 +46,7 @@ The selected text gets replaced with the transformed version.
 
 ## Install
 
-1. Download the latest DMG from [Releases](https://github.com/ayal/aiyo-wisper/releases/latest)
+1. Download the latest DMG from [Releases](https://github.com/Aiyo28/aiyo-wisper/releases/latest)
 2. Drag to Applications
 3. Launch — grant Microphone and Accessibility permissions
 4. Pick a speech model in Settings → Transcription
@@ -70,7 +70,7 @@ AI text cleanup uses **Qwen3 0.6B** (397 MB) — downloaded separately in Settin
 
 ```bash
 brew install xcodegen
-git clone https://github.com/ayal/aiyo-wisper.git
+git clone https://github.com/Aiyo28/aiyo-wisper.git
 cd aiyo-wisper
 xcodegen generate
 open AiyoWisper.xcodeproj
