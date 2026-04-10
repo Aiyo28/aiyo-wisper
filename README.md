@@ -1,11 +1,8 @@
-# AIYO Wisper
-
-**macOS voice-to-text with AI command mode — local, private, free.**
+<p align="center">
+  <img src="assets/banner.svg" alt="AIYO Wisper — Voice-to-text with AI command mode for macOS" width="100%">
+</p>
 
 Hold a key, speak, text appears at your cursor. Select text and speak a command to transform it. No cloud. No subscription. Everything runs on your Mac.
-
-<!-- TODO: Replace with actual GIF -->
-<!-- ![AIYO Wisper Demo](demo.gif) -->
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 

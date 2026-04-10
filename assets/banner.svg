@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.1"/>
+      <stop offset="50%" stop-color="#3b82f6" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="400" fill="url(#bg)" rx="12"/>
+
+  <!-- Subtle waveform background -->
+  <g opacity="0.15" transform="translate(0, 200)">
+    <rect x="100" y="-40" width="4" height="80" rx="2" fill="#3b82f6"/>
+    <rect x="112" y="-60" width="4" height="120" rx="2" fill="#3b82f6"/>
+    <rect x="124" y="-30" width="4" height="60" rx="2" fill="#3b82f6"/>
+    <rect x="136" y="-70" width="4" height="140" rx="2" fill="#4f8ef7"/>
+    <rect x="148" y="-45" width="4" height="90" rx="2" fill="#4f8ef7"/>
+    <rect x="160" y="-55" width="4" height="110" rx="2" fill="#5b9af8"/>
+    <rect x="172" y="-35" width="4" height="70" rx="2" fill="#5b9af8"/>
+    <rect x="184" y="-65" width="4" height="130" rx="2" fill="#6aa6f9"/>
+    <rect x="196" y="-40" width="4" height="80" rx="2" fill="#6aa6f9"/>
+
+    <rect x="1000" y="-50" width="4" height="100" rx="2" fill="#7c6cf6"/>
+    <rect x="1012" y="-35" width="4" height="70" rx="2" fill="#7c6cf6"/>
+    <rect x="1024" y="-65" width="4" height="130" rx="2" fill="#8b5cf6"/>
+    <rect x="1036" y="-45" width="4" height="90" rx="2" fill="#8b5cf6"/>
+    <rect x="1048" y="-55" width="4" height="110" rx="2" fill="#9a6cf7"/>
+    <rect x="1060" y="-30" width="4" height="60" rx="2" fill="#9a6cf7"/>
+    <rect x="1072" y="-70" width="4" height="140" rx="2" fill="#a97cf8"/>
+    <rect x="1084" y="-40" width="4" height="80" rx="2" fill="#a97cf8"/>
+    <rect x="1096" y="-60" width="4" height="120" rx="2" fill="#b88cf9"/>
+  </g>
+
+  <!-- Icon: waveform circle -->
+  <circle cx="600" cy="130" r="45" fill="none" stroke="url(#accent)" stroke-width="2.5" opacity="0.8"/>
+  <g transform="translate(580, 115)">
+    <rect x="0" y="5" width="3.5" height="20" rx="1.5" fill="#3b82f6"/>
+    <rect x="7" y="0" width="3.5" height="30" rx="1.5" fill="#5b9af8"/>
+    <rect x="14" y="3" width="3.5" height="24" rx="1.5" fill="#6aa6f9"/>
+    <rect x="21" y="-2" width="3.5" height="34" rx="1.5" fill="#8b5cf6"/>
+    <rect x="28" y="5" width="3.5" height="20" rx="1.5" fill="#9a6cf7"/>
+    <rect x="35" y="0" width="3.5" height="30" rx="1.5" fill="#7c6cf6"/>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="220" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif" font-size="48" font-weight="700" fill="white" letter-spacing="-1">
+    AIYO Wisper
+  </text>
+
+  <!-- Tagline -->
+  <text x="600" y="258" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif" font-size="20" fill="#a0a0b0" letter-spacing="0.5">
+    Voice-to-text with AI command mode for macOS
+  </text>
+
+  <!-- Feature pills -->
+  <g transform="translate(600, 300)" text-anchor="middle">
+    <!-- Local -->
+    <rect x="-295" y="-16" width="110" height="32" rx="16" fill="#3b82f6" fill-opacity="0.15" stroke="#3b82f6" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="-240" y="5" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" fill="#7db4fc" font-weight="500">100% Local</text>
+
+    <!-- Command Mode -->
+    <rect x="-155" y="-16" width="140" height="32" rx="16" fill="#8b5cf6" fill-opacity="0.15" stroke="#8b5cf6" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="-85" y="5" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" fill="#b89afc" font-weight="500">Command Mode</text>
+
+    <!-- Free -->
+    <rect x="15" y="-16" width="80" height="32" rx="16" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="55" y="5" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" fill="#6ee7b7" font-weight="500">Free</text>
+
+    <!-- Open Source -->
+    <rect x="125" y="-16" width="130" height="32" rx="16" fill="#f59e0b" fill-opacity="0.15" stroke="#f59e0b" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="190" y="5" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" fill="#fcd34d" font-weight="500">Open Source</text>
+  </g>
+
+  <!-- Subtle border -->
+  <rect width="1200" height="400" fill="none" stroke="#ffffff" stroke-opacity="0.05" rx="12"/>
+</svg>
