@@ -11,6 +11,11 @@ macOS menu bar voice-to-text app. Hold hotkey → speak → text appears at curs
 | Text inject | CGEvent `keyboardSetUnicodeString` | Clipboard fallback for terminals |
 | Build | XcodeGen (`project.yml`) | Regenerate: `xcodegen generate` |
 | Distribution | DMG / GitHub releases | No App Store (Accessibility prevents it) |
+| Repo type | **OSS** (public) | Planning docs in vault only, never committed |
+
+## Repo Hygiene
+
+MASTERPLAN.md, TODO.md, NEXT.md, session logs, and decision docs live in Knowledge OS vault (`Projects/aiyo-wisper/`). They are gitignored. Contributor-facing roadmap goes in README.md.
 
 ## Session Protocol
 
