@@ -95,9 +95,19 @@ final class DictationPipeline {
 
     private func startRecording() {
         print("[Pipeline] startRecording called — status: \(appState.status), isProcessing: \(isProcessing)")
-        guard appState.status == .idle, !isProcessing else {
-            print("[Pipeline] startRecording blocked — status: \(appState.status), isProcessing: \(isProcessing)")
+        guard appState.status == .idle else {
+            print("[Pipeline] startRecording blocked — status: \(appState.status)")
             return
+        }
+        if isProcessing {
+            // Recovery: if stuck processing for >10s, force reset
+            if let start = recordingStartTime, Date().timeIntervalSince(start) > 10 {
+                print("[Pipeline] Force-resetting stale isProcessing flag")
+                isProcessing = false
+            } else {
+                print("[Pipeline] startRecording blocked — isProcessing: true")
+                return
+            }
         }
         isProcessing = true
         defer { if appState.status != .recording { isProcessing = false } }
@@ -196,9 +206,18 @@ final class DictationPipeline {
 
     private func startCommandRecording() {
         print("[Pipeline] startCommandRecording called — status: \(appState.status), isProcessing: \(isProcessing)")
-        guard appState.status == .idle, !isProcessing else {
-            print("[Pipeline] startCommandRecording blocked — status: \(appState.status), isProcessing: \(isProcessing)")
+        guard appState.status == .idle else {
+            print("[Pipeline] startCommandRecording blocked — status: \(appState.status)")
             return
+        }
+        if isProcessing {
+            if let start = recordingStartTime, Date().timeIntervalSince(start) > 10 {
+                print("[Pipeline] Force-resetting stale isProcessing flag (command)")
+                isProcessing = false
+            } else {
+                print("[Pipeline] startCommandRecording blocked — isProcessing: true")
+                return
+            }
         }
         guard appState.commandModeEnabled else {
             print("[Pipeline] Command mode disabled in settings")

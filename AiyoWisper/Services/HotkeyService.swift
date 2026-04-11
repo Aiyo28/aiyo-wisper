@@ -51,26 +51,28 @@ final class HotkeyService: @unchecked Sendable {
         let commandPressed = event.modifierFlags.contains(.command)
         let shiftPressed = event.modifierFlags.contains(.shift)
 
-        // Dictation: Control only (no other modifiers)
+        // Dictation: Control only (no other modifiers) to start
         if controlPressed && !optionPressed && !commandPressed && !shiftPressed {
             if !isHotkeyPressed {
                 isHotkeyPressed = true
                 print("[Hotkey] Control key down detected")
                 onKeyDown?()
             }
-        } else if !controlPressed && isHotkeyPressed {
+        } else if isHotkeyPressed {
+            // Release when Control goes up OR any other modifier is added
             isHotkeyPressed = false
-            print("[Hotkey] Control key up detected")
+            print("[Hotkey] Control key up detected (controlPressed: \(controlPressed))")
             onKeyUp?()
         }
 
-        // Command mode: Option only (no other modifiers)
+        // Command mode: Option only (no other modifiers) to start
         if optionPressed && !controlPressed && !commandPressed && !shiftPressed {
             if !isCommandHotkeyPressed {
                 isCommandHotkeyPressed = true
                 onCommandKeyDown?()
             }
-        } else if !optionPressed && isCommandHotkeyPressed {
+        } else if isCommandHotkeyPressed {
+            // Release when Option goes up OR any other modifier is added
             isCommandHotkeyPressed = false
             onCommandKeyUp?()
         }

@@ -52,8 +52,8 @@ struct AiyoWisperApp: App {
 
     private var menuBarIcon: String {
         switch appState.status {
-        case .recording: "mic.fill"
-        case .transcribing, .cleaning: "ellipsis.circle"
+        case .recording, .commandRecording: "mic.fill"
+        case .transcribing, .cleaning, .commandTranscribing, .commandProcessing: "ellipsis.circle"
         default: "waveform"
         }
     }

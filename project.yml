@@ -57,6 +57,7 @@ targets:
         NSAccessibilityUsageDescription: "AIYO Wisper needs Accessibility access to register global hotkeys and type transcribed text into other applications."
         SUFeedURL: "https://raw.githubusercontent.com/Aiyo28/aiyo-wisper/main/appcast.xml"
         SUEnableAutomaticChecks: true
+        SUPublicEDKey: "aRouqjBBUWqJNu0x77sltzUQ/OUHFSl9kbSTkeuVpUk="
 
   AiyoWisperTests:
     type: bundle.unit-test
