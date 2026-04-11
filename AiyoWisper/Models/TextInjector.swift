@@ -31,7 +31,7 @@ struct TextInjector {
 
         simulateKeyCombination(keyCode: CGKeyCode(kVK_ANSI_C), flags: .maskCommand)
 
-        usleep(100_000)
+        usleep(200_000)
 
         let selection = pasteboard.string(forType: .string)
 

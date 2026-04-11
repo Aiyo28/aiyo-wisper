@@ -27,6 +27,8 @@
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/ayal/aiyo-wisper/main/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/Aiyo28/aiyo-wisper/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>aRouqjBBUWqJNu0x77sltzUQ/OUHFSl9kbSTkeuVpUk=</string>
 </dict>
 </plist>

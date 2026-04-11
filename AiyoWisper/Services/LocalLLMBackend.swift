@@ -50,20 +50,10 @@ extension LocalLLMBackend: LLMBackend {
         guard !cleaned.isEmpty else {
             throw LLMError.noResponseContent
         }
-        return stripWrappingQuotes(cleaned)
+        return cleaned
     }
 
     func isAvailable() async -> Bool {
         FileManager.default.fileExists(atPath: modelPath)
-    }
-
-    private func stripWrappingQuotes(_ text: String) -> String {
-        let pairs: [(Character, Character)] = [("\"", "\""), ("'", "'"), ("`", "`")]
-        for (open, close) in pairs {
-            if text.first == open, text.last == close, text.count >= 2 {
-                return String(text.dropFirst().dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-        }
-        return text
     }
 }
