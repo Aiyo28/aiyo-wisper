@@ -37,6 +37,11 @@ Package.resolved
 # Generated Xcode project (use xcodegen generate)
 AiyoWisper.xcodeproj/
 
+# Planning docs (live in Knowledge OS vault)
+MASTERPLAN.md
+TODO.md
+NEXT.md
+
 # Secrets
 .env
 *.pem
