@@ -4,6 +4,7 @@ struct MenuBarView: View {
     let appState: AppState
     let modelManager: ModelManager
     @ObservedObject var updaterService: UpdaterService
+    @Environment(\.openSettings) private var openSettings
     @State private var copiedEntryId: UUID?
 
     var body: some View {
@@ -106,7 +107,10 @@ struct MenuBarView: View {
 
             Divider()
 
-            SettingsLink()
+            Button("Settings...") {
+                openSettingsToFront()
+            }
+            .keyboardShortcut(",", modifiers: .command)
 
             Button("Check for Updates...") {
                 updaterService.checkForUpdates()
@@ -119,6 +123,28 @@ struct MenuBarView: View {
         }
         .padding()
         .frame(width: 260)
+    }
+
+    /// MenuBarExtra apps don't activate when SettingsLink fires, so the window opens behind
+    /// whatever app is frontmost. Activate explicitly, then raise the Settings window once
+    /// SwiftUI has created it.
+    private func openSettingsToFront() {
+        NSApp.activate(ignoringOtherApps: true)
+        openSettings()
+        DispatchQueue.main.async {
+            raiseSettingsWindow()
+        }
+    }
+
+    private func raiseSettingsWindow() {
+        let settingsWindow = NSApp.windows.first { window in
+            // SwiftUI's Settings scene uses this frame autosave name; fall back to title match.
+            window.frameAutosaveName == "com_apple_SwiftUI_Settings_window"
+                || window.title == "AIYO Wisper Settings"
+                || window.title.localizedCaseInsensitiveContains("settings")
+        }
+        settingsWindow?.makeKeyAndOrderFront(nil)
+        settingsWindow?.orderFrontRegardless()
     }
 
     private var statusColor: Color {
