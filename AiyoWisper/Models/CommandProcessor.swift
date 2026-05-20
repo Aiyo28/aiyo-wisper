@@ -4,15 +4,6 @@ import Foundation
 
 struct CommandProcessor: Sendable {
 
-    // MARK: - Constants
-
-    private static let systemPrompt = """
-        You are a text transformation assistant. You receive selected text and a voice command. \
-        Apply the command to transform the text. Output ONLY the transformed text. \
-        Do not add explanations, markdown formatting, or quotes around the output. \
-        Preserve the original formatting style unless the command requires changing it.
-        """
-
     // MARK: - Dependencies
 
     private let backend: any LLMBackend
@@ -32,7 +23,7 @@ struct CommandProcessor: Sendable {
             """
 
         let result = try await backend.complete(
-            systemPrompt: Self.systemPrompt,
+            systemPrompt: Constants.LLM.commandSystemPrompt,
             userPrompt: userPrompt,
             parameters: parameters
         )
