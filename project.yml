@@ -9,9 +9,9 @@ options:
 packages:
   WhisperKit:
     url: https://github.com/argmaxinc/WhisperKit.git
-    from: "0.9.0"
-  LLM:
-    url: https://github.com/eastriverlee/LLM.swift.git
+    from: "1.0.0"
+  LocalLLMClient:
+    url: https://github.com/tattn/LocalLLMClient.git
     branch: main
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle.git
@@ -31,6 +31,9 @@ targets:
         MACOSX_DEPLOYMENT_TARGET: "15.0"
         ARCHS: arm64
         SWIFT_STRICT_CONCURRENCY: complete
+        # Required by LocalLLMClientLlamaC which exposes C++ headers (utils.h uses <memory>)
+        SWIFT_OBJC_INTEROP_MODE: objcxx
+        OTHER_SWIFT_FLAGS: "-cxx-interoperability-mode=default"
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_IDENTITY: "Apple Development"
         DEVELOPMENT_TEAM: "8QWT6Z76LH"
@@ -47,7 +50,10 @@ targets:
           PROVISIONING_PROFILE_SPECIFIER: ""
     dependencies:
       - package: WhisperKit
-      - package: LLM
+      - package: LocalLLMClient
+        product: LocalLLMClient
+      - package: LocalLLMClient
+        product: LocalLLMClientLlama
       - package: Sparkle
     info:
       path: AiyoWisper/Info.plist

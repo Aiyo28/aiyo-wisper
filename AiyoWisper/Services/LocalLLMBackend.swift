@@ -1,54 +1,49 @@
 import Foundation
-import LLM
+import LocalLLMClient
+import LocalLLMClientLlama
 
-final class LocalLLMBackend: @unchecked Sendable {
-    private var model: LLM?
+actor LocalLLMBackend {
+    private var session: LLMSession?
     private var loadFailed = false
-    private let modelPath: String
-    private let lock = NSLock()
+    private let downloadModel: LLMSession.DownloadModel
+    private let modelURL: URL
 
-    init(modelPath: String) {
-        self.modelPath = modelPath
+    init(downloadModel: LLMSession.DownloadModel) {
+        self.downloadModel = downloadModel
+        self.modelURL = downloadModel.modelPath
     }
 
-    private func ensureLoaded() throws -> LLM {
-        lock.lock()
-        defer { lock.unlock() }
-        if loadFailed {
-            throw LLMError.modelCorrupted
-        }
-        if let model { return model }
+    private func ensureLoaded() async throws -> LLMSession {
+        if loadFailed { throw LLMError.modelCorrupted }
+        if let session { return session }
 
         // Pre-flight: confirm file is still present and has GGUF magic before letting
-        // llama.cpp touch it. A partial download can crash or hang the process.
-        guard Self.fileLooksValid(at: modelPath) else {
+        // llama.cpp touch it. A partial download would otherwise crash or hang the
+        // process during prewarm().
+        guard Self.fileLooksValid(at: modelURL) else {
             loadFailed = true
             throw LLMError.modelCorrupted
         }
 
-        guard let loaded = LLM(
-            from: modelPath,
-            topP: 0.9,
-            temp: 0.3,
-            repeatPenalty: 1.1,
-            maxTokenCount: 256
-        ) else {
+        let newSession = LLMSession(model: downloadModel)
+        do {
+            // prewarm loads the model — surface the failure here rather than on the
+            // first respond() call so we can swap to .modelCorrupted cleanly.
+            try await newSession.prewarm()
+        } catch {
             loadFailed = true
             throw LLMError.modelCorrupted
         }
-        self.model = loaded
-        return loaded
+        self.session = newSession
+        return newSession
     }
 
     func unload() {
-        lock.lock()
-        model = nil
-        lock.unlock()
+        session = nil
     }
 
-    private static func fileLooksValid(at path: String) -> Bool {
-        let url = URL(fileURLWithPath: path)
-        let attrs = try? FileManager.default.attributesOfItem(atPath: path)
+    private static func fileLooksValid(at url: URL) -> Bool {
+        let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
         let size = (attrs?[.size] as? Int64) ?? 0
         guard size >= Constants.LLM.minimumModelFileSize else { return false }
         guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
@@ -59,25 +54,33 @@ final class LocalLLMBackend: @unchecked Sendable {
 }
 
 extension LocalLLMBackend: LLMBackend {
-    func complete(systemPrompt: String, userPrompt: String, parameters: LLMParameters) async throws -> String {
-        let llm = try ensureLoaded()
+    func complete(systemPrompt: String, userPrompt: String, parameters _: LLMParameters) async throws -> String {
+        let session = try await ensureLoaded()
 
-        llm.temp = Float(parameters.temperature)
-        llm.historyLimit = 0
-        llm.template = .chatML(systemPrompt)
+        // System prompt is set per call (we don't keep prior turns — each cleanup
+        // is independent). LocalLLMClient does not honor a per-respond temperature
+        // override, so the parameter set at model creation time is what takes effect.
+        session.messages = [.system(systemPrompt)]
 
-        let output = await llm.getCompletion(from: userPrompt)
-        llm.history = []
-        llm.reset()
-
-        let cleaned = output.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleaned.isEmpty else {
+        do {
+            let output = try await session.respond(to: userPrompt)
+            let cleaned = output.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleaned.isEmpty else { throw LLMError.noResponseContent }
+            return cleaned
+        } catch LLMError.noResponseContent {
             throw LLMError.noResponseContent
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            // Any other failure at inference time is treated as a model fault — drop
+            // the session so we don't keep using a bad one.
+            self.session = nil
+            loadFailed = true
+            throw LLMError.modelCorrupted
         }
-        return cleaned
     }
 
-    func isAvailable() async -> Bool {
-        Self.fileLooksValid(at: modelPath)
+    nonisolated func isAvailable() async -> Bool {
+        Self.fileLooksValid(at: modelURL)
     }
 }

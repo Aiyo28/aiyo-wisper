@@ -61,8 +61,8 @@ struct AiyoWisperApp: App {
     }
 
     private func updateLLMBackend() {
-        if let path = llmModelManager.modelPath {
-            let backend = LocalLLMBackend(modelPath: path)
+        if llmModelManager.modelPath != nil {
+            let backend = LocalLLMBackend(downloadModel: llmModelManager.downloadModel)
             pipeline?.updateLLMBackend(backend)
         } else {
             pipeline?.updateLLMBackend(nil)
@@ -86,8 +86,8 @@ struct AiyoWisperApp: App {
         let dictationLearner = _learner.wrappedValue
         let dictationPipeline = DictationPipeline(appState: state, modelManager: manager, shortcutManager: shortcuts, dictionaryManager: dictionary, learner: dictationLearner)
 
-        if let path = llmManager.modelPath {
-            let backend = LocalLLMBackend(modelPath: path)
+        if llmManager.modelPath != nil {
+            let backend = LocalLLMBackend(downloadModel: llmManager.downloadModel)
             dictationPipeline.updateLLMBackend(backend)
         }
 

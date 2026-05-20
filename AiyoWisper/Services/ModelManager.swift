@@ -1,5 +1,4 @@
 import Foundation
-import Hub
 import WhisperKit
 
 @MainActor @Observable
@@ -75,21 +74,17 @@ final class ModelManager {
 
         try fileManager.createDirectory(at: modelsDirectory, withIntermediateDirectories: true)
 
-        let progressCallback: @Sendable (Progress) -> Void = { [weak self] progress in
-            Task { @MainActor [weak self] in
-                self?.downloadProgress = progress.fractionCompleted
+        // WhisperKit 1.0+ provides its own vendored HuggingFace downloader (HubApiWrapper),
+        // dropping the swift-transformers dep that conflicted with LocalLLMClient.
+        let downloadedURL = try await WhisperKit.download(
+            variant: model.variant,
+            from: "argmaxinc/whisperkit-coreml",
+            progressCallback: { [weak self] progress in
+                Task { @MainActor [weak self] in
+                    self?.downloadProgress = progress.fractionCompleted
+                }
             }
-        }
-
-        // Use HubApi directly with exact variant glob for reliable downloads
-        let hubApi = HubApi()
-        let repo = Hub.Repo(id: "argmaxinc/whisperkit-coreml", type: .models)
-        let modelFolder = try await hubApi.snapshot(
-            from: repo,
-            matching: ["\(model.variant)/*"],
-            progressHandler: progressCallback
         )
-        let downloadedURL = modelFolder.appendingPathComponent(model.variant)
 
         // Move model into the app's Models directory if not already there
         let destination = modelsDirectory.appendingPathComponent(downloadedURL.lastPathComponent)
