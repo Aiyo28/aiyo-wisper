@@ -212,7 +212,7 @@ final class DictationPipeline {
             appState.addTranscription(expanded, isCommand: false)
             // Capture focused field state BEFORE injection so the learner can diff after.
             learner.captureInjection(injectedText: expanded)
-            TextInjector.inject(expanded, charByChar: appState.characterByCharacterMode)
+            await TextInjector.inject(expanded, charByChar: appState.characterByCharacterMode)
             appState.status = .idle
         } catch {
             appState.status = .error
@@ -313,7 +313,7 @@ final class DictationPipeline {
             appState.lastCommand = result.text
             print("[Command] Transcribed command: \(result.text)")
 
-            guard let selectedText = TextInjector.readSelection(), !selectedText.isEmpty else {
+            guard let selectedText = await TextInjector.readSelection(), !selectedText.isEmpty else {
                 print("[Command] Failed to read selection — no text selected")
                 appState.errorMessage = "No text selected — select text before using command mode"
                 appState.status = .error
