@@ -7,6 +7,7 @@ struct AiyoWisperApp: App {
     @State private var llmModelManager = LLMModelManager()
     @State private var shortcutManager = ShortcutManager()
     @State private var dictionaryManager = DictionaryManager()
+    @State private var learner = DictationLearner()
     @State private var pipeline: DictationPipeline?
     @State private var overlay = RecordingOverlay()
     @StateObject private var updaterService = UpdaterService()
@@ -38,6 +39,7 @@ struct AiyoWisperApp: App {
                 updaterService: updaterService,
                 shortcutManager: shortcutManager,
                 dictionaryManager: dictionaryManager,
+                learner: learner,
                 onModelSelected: {
                     Task {
                         await pipeline?.loadSelectedModel()
@@ -81,11 +83,18 @@ struct AiyoWisperApp: App {
         let llmManager = _llmModelManager.wrappedValue
         let shortcuts = _shortcutManager.wrappedValue
         let dictionary = _dictionaryManager.wrappedValue
-        let dictationPipeline = DictationPipeline(appState: state, modelManager: manager, shortcutManager: shortcuts, dictionaryManager: dictionary)
+        let dictationLearner = _learner.wrappedValue
+        let dictationPipeline = DictationPipeline(appState: state, modelManager: manager, shortcutManager: shortcuts, dictionaryManager: dictionary, learner: dictationLearner)
 
         if let path = llmManager.modelPath {
             let backend = LocalLLMBackend(modelPath: path)
             dictationPipeline.updateLLMBackend(backend)
+        }
+
+        dictationPipeline.onLLMCorrupted = { [weak llmManager] in
+            Task { @MainActor in
+                llmManager?.markCorruptAndDelete(reason: "Model failed to load")
+            }
         }
 
         _pipeline = State(initialValue: dictationPipeline)

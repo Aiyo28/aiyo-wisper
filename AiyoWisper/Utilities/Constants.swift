@@ -114,10 +114,18 @@ enum Constants {
             Preserve the original formatting style unless the command requires changing it.
             """
 
+        // Verified live on HuggingFace 2026-05-20 (research/web fetch).
+        // Only GGUF model under 800 MB with ChatML-native template — required by LLM.swift.
         static let defaultModelRepo = "unsloth/Qwen3-0.6B-GGUF"
         static let defaultModelFile = "Qwen3-0.6B-Q4_K_M.gguf"
         static let defaultModelName = "Qwen3 0.6B"
         static let defaultModelSize = "~400 MB"
+
+        // Q4_K_M of Qwen3-0.6B is 378 MB on HF; anything under 300 MB indicates a partial/corrupt download.
+        static let minimumModelFileSize: Int64 = 300 * 1024 * 1024
+
+        // GGUF file magic: first 4 bytes are "GGUF" (0x47 0x47 0x55 0x46).
+        static let ggufMagic: [UInt8] = [0x47, 0x47, 0x55, 0x46]
 
         static var llmModelsDirectory: URL {
             let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!

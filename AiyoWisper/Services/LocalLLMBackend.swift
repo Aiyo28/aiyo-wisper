@@ -3,6 +3,7 @@ import LLM
 
 final class LocalLLMBackend: @unchecked Sendable {
     private var model: LLM?
+    private var loadFailed = false
     private let modelPath: String
     private let lock = NSLock()
 
@@ -13,7 +14,18 @@ final class LocalLLMBackend: @unchecked Sendable {
     private func ensureLoaded() throws -> LLM {
         lock.lock()
         defer { lock.unlock() }
+        if loadFailed {
+            throw LLMError.modelCorrupted
+        }
         if let model { return model }
+
+        // Pre-flight: confirm file is still present and has GGUF magic before letting
+        // llama.cpp touch it. A partial download can crash or hang the process.
+        guard Self.fileLooksValid(at: modelPath) else {
+            loadFailed = true
+            throw LLMError.modelCorrupted
+        }
+
         guard let loaded = LLM(
             from: modelPath,
             topP: 0.9,
@@ -21,7 +33,8 @@ final class LocalLLMBackend: @unchecked Sendable {
             repeatPenalty: 1.1,
             maxTokenCount: 256
         ) else {
-            throw LLMError.modelNotLoaded
+            loadFailed = true
+            throw LLMError.modelCorrupted
         }
         self.model = loaded
         return loaded
@@ -31,6 +44,17 @@ final class LocalLLMBackend: @unchecked Sendable {
         lock.lock()
         model = nil
         lock.unlock()
+    }
+
+    private static func fileLooksValid(at path: String) -> Bool {
+        let url = URL(fileURLWithPath: path)
+        let attrs = try? FileManager.default.attributesOfItem(atPath: path)
+        let size = (attrs?[.size] as? Int64) ?? 0
+        guard size >= Constants.LLM.minimumModelFileSize else { return false }
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? handle.close() }
+        guard let header = try? handle.read(upToCount: 4), header.count == 4 else { return false }
+        return Array(header) == Constants.LLM.ggufMagic
     }
 }
 
@@ -54,6 +78,6 @@ extension LocalLLMBackend: LLMBackend {
     }
 
     func isAvailable() async -> Bool {
-        FileManager.default.fileExists(atPath: modelPath)
+        Self.fileLooksValid(at: modelPath)
     }
 }

@@ -11,16 +11,22 @@ final class DictationPipeline {
     private let smartFormatter = SmartFormatter()
     private let shortcutManager: ShortcutManager
     private let dictionaryManager: DictionaryManager
+    private let learner: DictationLearner
     private var commandProcessor: CommandProcessor?
     private var llmBackend: (any LLMBackend)?
     private var recordingStartTime: Date?
     private var isProcessing = false
 
-    init(appState: AppState, modelManager: ModelManager, shortcutManager: ShortcutManager, dictionaryManager: DictionaryManager) {
+    /// Invoked when the LLM cleanup model is detected as corrupted at runtime.
+    /// App layer should delete the file, drop the backend, and disable LLM cleanup.
+    var onLLMCorrupted: (() -> Void)?
+
+    init(appState: AppState, modelManager: ModelManager, shortcutManager: ShortcutManager, dictionaryManager: DictionaryManager, learner: DictationLearner) {
         self.appState = appState
         self.modelManager = modelManager
         self.shortcutManager = shortcutManager
         self.dictionaryManager = dictionaryManager
+        self.learner = learner
     }
 
     func updateLLMBackend(_ backend: (any LLMBackend)?) {
@@ -184,7 +190,18 @@ final class DictationPipeline {
 
             if appState.useLLMCleanup, let backend = llmBackend {
                 appState.status = .cleaning
-                formatted = await smartFormatter.cleanupWithLLM(formatted, backend: backend)
+                let cleanup = await smartFormatter.cleanupWithLLM(formatted, backend: backend)
+                formatted = cleanup.text
+                if cleanup.modelCorrupted {
+                    // File passed pre-flight but llama.cpp refused it (or pre-flight just flipped).
+                    // Disable cleanup so we don't keep retrying, drop the bad file, surface error.
+                    appState.useLLMCleanup = false
+                    llmBackend = nil
+                    commandProcessor = nil
+                    onLLMCorrupted?()
+                    appState.errorMessage = "AI cleanup model was corrupted — re-download in Settings → Formatting"
+                    scheduleErrorReset()
+                }
             }
 
             let corrected = dictionaryManager.applyCorrections(formatted)
@@ -193,6 +210,8 @@ final class DictationPipeline {
             appState.status = .injecting
             appState.lastTranscription = expanded
             appState.addTranscription(expanded, isCommand: false)
+            // Capture focused field state BEFORE injection so the learner can diff after.
+            learner.captureInjection(injectedText: expanded)
             TextInjector.inject(expanded, charByChar: appState.characterByCharacterMode)
             appState.status = .idle
         } catch {

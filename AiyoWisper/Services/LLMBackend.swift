@@ -11,6 +11,7 @@ protocol LLMBackend: Sendable {
 
 enum LLMError: Error, LocalizedError {
     case modelNotLoaded
+    case modelCorrupted
     case inferenceTimeout
     case noResponseContent
     case inferenceFailed(Error)
@@ -19,6 +20,8 @@ enum LLMError: Error, LocalizedError {
         switch self {
         case .modelNotLoaded:
             "LLM model not loaded — download it in Settings → Formatting"
+        case .modelCorrupted:
+            "LLM model file is corrupted or incomplete — re-download in Settings → Formatting"
         case .inferenceTimeout:
             "LLM inference timed out"
         case .noResponseContent:
