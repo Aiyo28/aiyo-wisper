@@ -58,6 +58,16 @@ final class DictationLearner {
         let trimmed = injectedText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 3 else { return }
         guard let element = focusedElement() else { return }
+
+        // Mirror the finalize() role/secure gates here so we never capture preStateText
+        // from a sensitive field even briefly.
+        guard let role = stringAttribute(of: element, name: kAXRoleAttribute as CFString),
+              allowedTextRoles.contains(role) else { return }
+        if let desc = stringAttribute(of: element, name: kAXRoleDescriptionAttribute as CFString),
+           desc.localizedCaseInsensitiveContains("secure") { return }
+        if let subrole = stringAttribute(of: element, name: kAXSubroleAttribute as CFString),
+           subrole == (kAXSecureTextFieldSubrole as String) { return }
+
         let preText = textValue(of: element) ?? ""
         let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""
 
@@ -93,9 +103,37 @@ final class DictationLearner {
 
     // MARK: - Finalize / diff
 
+    /// Re-reads the focused field 12s after injection and diffs against what we typed.
+    /// Multiple safety gates prevent reading data the user never intended us to see:
+    /// (1) the focus must still be on the same element we observed at injection time,
+    /// (2) the element must be a text-bearing role (no buttons, no system UI), and
+    /// (3) password / secure-text fields are refused outright.
     private func finalize() {
         defer { pending = nil }
         guard let p = pending else { return }
+
+        // Bail if the user switched focus away. A different element 12s later could be
+        // a password field, a banking app, a chat message in another app — none of
+        // which we have any business reading just because we dictated earlier.
+        guard let currentlyFocused = focusedElement(),
+              CFEqual(currentlyFocused, p.element) else { return }
+
+        // The element must still be a regular text input. Roles we accept:
+        // AXTextField, AXTextArea, AXComboBox. Anything else is silently dropped.
+        guard let role = stringAttribute(of: p.element, name: kAXRoleAttribute as CFString),
+              allowedTextRoles.contains(role) else { return }
+
+        // Refuse secure text fields explicitly — role description is the most reliable
+        // signal across native and Catalyst apps.
+        if let desc = stringAttribute(of: p.element, name: kAXRoleDescriptionAttribute as CFString),
+           desc.localizedCaseInsensitiveContains("secure") {
+            return
+        }
+        if let subrole = stringAttribute(of: p.element, name: kAXSubroleAttribute as CFString),
+           subrole == (kAXSecureTextFieldSubrole as String) {
+            return
+        }
+
         guard let postText = textValue(of: p.element) else { return }
 
         let newOnes = computeSuggestions(
@@ -107,6 +145,12 @@ final class DictationLearner {
         guard !newOnes.isEmpty else { return }
         mergeSuggestions(newOnes)
     }
+
+    private let allowedTextRoles: Set<String> = [
+        kAXTextFieldRole as String,
+        kAXTextAreaRole as String,
+        kAXComboBoxRole as String,
+    ]
 
     /// Word-level positional comparison anchored on the prefix shared between pre and post
     /// state. Returns substitutions where injected word X was replaced by similar word Y.
@@ -170,6 +214,13 @@ final class DictationLearner {
     private func textValue(of element: AXUIElement) -> String? {
         var value: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &value)
+        guard result == .success, let str = value as? String else { return nil }
+        return str
+    }
+
+    private func stringAttribute(of element: AXUIElement, name: CFString) -> String? {
+        var value: CFTypeRef?
+        let result = AXUIElementCopyAttributeValue(element, name, &value)
         guard result == .success, let str = value as? String else { return nil }
         return str
     }
