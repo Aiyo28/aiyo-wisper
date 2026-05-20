@@ -114,8 +114,8 @@ enum Constants {
             Preserve the original formatting style unless the command requires changing it.
             """
 
-        // Verified live on HuggingFace 2026-05-20 (research/web fetch).
-        // Only GGUF model under 800 MB with ChatML-native template — required by LLM.swift.
+        // Verified live on HuggingFace 2026-05-20.
+        // LocalLLMClient downloads via HF model ID + filename glob (LLMSession.DownloadModel.llama).
         static let defaultModelRepo = "unsloth/Qwen3-0.6B-GGUF"
         static let defaultModelFile = "Qwen3-0.6B-Q4_K_M.gguf"
         static let defaultModelName = "Qwen3 0.6B"

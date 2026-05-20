@@ -1,5 +1,6 @@
 import Foundation
-import LLM
+import LocalLLMClient
+import LocalLLMClientLlama
 
 @MainActor
 @Observable
@@ -12,13 +13,25 @@ final class LLMModelManager {
 
     private var downloadTask: Task<Void, Never>?
 
+    /// Single source of truth for the model definition. LocalLLMClient handles file
+    /// storage internally — modelPath property tells us where it lives.
+    let downloadModel: LLMSession.DownloadModel
+
     init() {
-        isModelDownloaded = Self.validateExistingFile()
+        let model = LLMSession.DownloadModel.llama(
+            id: Constants.LLM.defaultModelRepo,
+            model: Constants.LLM.defaultModelFile,
+            parameter: .init(temperature: 0.3, topP: 0.9)
+        )
+        self.downloadModel = model
+        // Combine the package's own check with our integrity check so partial files
+        // don't get treated as ready.
+        self.isModelDownloaded = model.isDownloaded && Self.fileLooksValid(at: model.modelPath)
     }
 
-    var modelPath: String? {
+    var modelPath: URL? {
         guard isModelDownloaded else { return nil }
-        return Constants.LLM.defaultModelPath.path
+        return downloadModel.modelPath
     }
 
     func download() {
@@ -27,28 +40,18 @@ final class LLMModelManager {
         downloadProgress = 0
         downloadError = nil
 
-        // Always clear any prior (possibly partial) file before starting a fresh download.
+        // Always purge any prior partial file before starting fresh.
         deleteFileIfPresent()
 
         downloadTask = Task {
             do {
-                let dir = Constants.LLM.llmModelsDirectory
-                try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-
-                let hfModel = HuggingFaceModel(
-                    Constants.LLM.defaultModelRepo,
-                    .Q4_K_M,
-                    template: .chatML(Constants.LLM.cleanupSystemPrompt)
-                )
-
-                _ = try await hfModel.download(to: dir, as: Constants.LLM.defaultModelFile) { [weak self] progress in
+                try await downloadModel.downloadModel { [weak self] progress in
                     Task { @MainActor [weak self] in
                         self?.downloadProgress = progress
                     }
                 }
 
-                // Validate the result. If HF returned partial bytes or a wrong file, treat as failure.
-                guard Self.validateExistingFile() else {
+                guard Self.fileLooksValid(at: downloadModel.modelPath) else {
                     deleteFileIfPresent()
                     throw LLMError.modelCorrupted
                 }
@@ -85,8 +88,8 @@ final class LLMModelManager {
         isModelDownloaded = false
     }
 
-    /// Called when a load failure is detected at runtime — file passes existence/size check
-    /// but llama.cpp refuses to load it. Treat as corrupted: delete and reset.
+    /// Runtime corruption signal from the backend — file passed pre-flight but llama.cpp
+    /// refused to load it. Treat the same as a partial download.
     func markCorruptAndDelete(reason: String) {
         deleteFileIfPresent()
         isModelDownloaded = false
@@ -94,23 +97,21 @@ final class LLMModelManager {
     }
 
     func refreshState() {
-        isModelDownloaded = Self.validateExistingFile()
+        isModelDownloaded = downloadModel.isDownloaded && Self.fileLooksValid(at: downloadModel.modelPath)
     }
 
     // MARK: - Validation
 
-    /// Returns true only if the file at `defaultModelPath` is present, large enough,
-    /// and has a GGUF magic header. Prevents partial downloads from being treated as ready.
-    private static func validateExistingFile() -> Bool {
-        let url = Constants.LLM.defaultModelPath
+    /// Defense in depth on top of LocalLLMClient's own download integrity: confirm the
+    /// file is large enough and starts with GGUF magic bytes before we hand it to
+    /// llama.cpp.
+    private static func fileLooksValid(at url: URL) -> Bool {
         guard FileManager.default.fileExists(atPath: url.path) else { return false }
 
-        // Size check
         let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
         let size = (attrs?[.size] as? Int64) ?? 0
         guard size >= Constants.LLM.minimumModelFileSize else { return false }
 
-        // Magic header check (first 4 bytes must be "GGUF")
         guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
         defer { try? handle.close() }
         guard let header = try? handle.read(upToCount: 4), header.count == 4 else { return false }
@@ -118,9 +119,9 @@ final class LLMModelManager {
     }
 
     private func deleteFileIfPresent() {
-        let path = Constants.LLM.defaultModelPath
-        if FileManager.default.fileExists(atPath: path.path) {
-            try? FileManager.default.removeItem(at: path)
+        let url = downloadModel.modelPath
+        if FileManager.default.fileExists(atPath: url.path) {
+            try? FileManager.default.removeItem(at: url)
         }
     }
 }
