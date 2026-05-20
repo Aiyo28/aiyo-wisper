@@ -45,6 +45,7 @@ enum Constants {
         static let llmTemperature = "llmTemperature"
         static let llmMaxTokens = "llmMaxTokens"
         static let llmPreset = "llmPreset"
+        static let useLLMCleanup = "useLLMCleanup"
     }
 
     enum TextInjection {
@@ -137,10 +138,6 @@ enum Constants {
         }
     }
 
-    enum UserDefaultsKeys2 {
-        static let useLLMCleanup = "useLLMCleanup"
-    }
-
     enum History {
         static let maxPersistentEntries = 6
 
@@ -155,6 +152,12 @@ enum Constants {
             let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
             return appSupport.appendingPathComponent("AiyoWisper/dictionary.json", isDirectory: false)
         }
+
+        /// How long DictationLearner waits after an injection before sampling the focused
+        /// field to detect user corrections. Long enough for a user to notice an error
+        /// and start fixing it; short enough that we don't drift across user actions or
+        /// invite focus changes that would defeat the AX-role safety gates.
+        static let observationDelay: TimeInterval = 12
     }
 
     enum CommandMode {
