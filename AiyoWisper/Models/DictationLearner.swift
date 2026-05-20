@@ -31,10 +31,6 @@ final class DictationLearner {
     private var pending: PendingObservation?
     private var observationTask: Task<Void, Never>?
 
-    /// Delay before we sample the text field to look for edits. Long enough for a user
-    /// to notice an error and start fixing it; short enough not to drift across actions.
-    private let observationDelay: TimeInterval = 12
-
     /// Maximum number of pending suggestions. Older ones get dropped first.
     private let maxSuggestions = 30
 
@@ -79,7 +75,7 @@ final class DictationLearner {
         )
 
         observationTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(self?.observationDelay ?? 12))
+            try? await Task.sleep(for: .seconds(Constants.Dictionary.observationDelay))
             self?.finalize()
         }
     }

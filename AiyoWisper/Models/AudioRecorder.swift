@@ -1,16 +1,14 @@
 @preconcurrency import AVFoundation
 import Foundation
 
-@Observable
-final class AudioRecorder {
-    enum State {
-        case idle
-        case recording
-        case processing
-    }
-
-    private(set) var state: State = .idle
-
+/// Captures 16kHz mono Float32 audio for WhisperKit.
+///
+/// **Threading contract:** `installTap` callbacks run on AVAudioEngine's internal
+/// render thread, not the main thread. `samples` is mutated from that thread, so
+/// all reads/writes must be lock-protected. The pipeline calls `startRecording` /
+/// `stopRecording` from `@MainActor` and uses the returned `[Float]` synchronously,
+/// so no observation/published-state machinery is needed here.
+final class AudioRecorder: @unchecked Sendable {
     private var audioEngine: AVAudioEngine?
     private var samples: [Float] = []
     private let lock = NSLock()
@@ -78,11 +76,9 @@ final class AudioRecorder {
             throw error
         }
         audioEngine = engine
-        state = .recording
     }
 
     func stopRecording() -> [Float] {
-        state = .processing
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine?.stop()
         audioEngine = nil
@@ -92,7 +88,6 @@ final class AudioRecorder {
         samples = []
         lock.unlock()
 
-        state = .idle
         return result
     }
 }
