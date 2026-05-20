@@ -76,6 +76,7 @@ struct AiyoWisperApp: App {
         UserDefaults.standard.set(true, forKey: migrationKey)
     }
 
+    @MainActor
     init() {
         Self.migrateAutoDetectLanguage()
         let state = _appState.wrappedValue
@@ -103,13 +104,9 @@ struct AiyoWisperApp: App {
         recordingOverlay.observe(state)
 
         if state.isOnboarded {
-            DispatchQueue.main.async {
-                dictationPipeline.start()
-            }
+            dictationPipeline.start()
         } else {
-            DispatchQueue.main.async {
-                NSApp.activate(ignoringOtherApps: true)
-            }
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
 }
