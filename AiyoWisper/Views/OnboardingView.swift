@@ -188,10 +188,9 @@ struct OnboardingView: View {
                                     .foregroundStyle(.green)
                             } else if modelManager.isDownloading && modelManager.currentDownloadModel == model.id {
                                 Button("Cancel") {
-                                    // Cancel not implemented for WhisperKit downloads yet
+                                    modelManager.cancelDownload()
                                 }
                                 .controlSize(.small)
-                                .disabled(true)
                             } else {
                                 Button("Download") {
                                     Task {

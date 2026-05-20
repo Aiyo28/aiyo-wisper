@@ -38,6 +38,7 @@ final class ModelManager {
     var currentDownloadModel: String?
 
     private let fileManager = FileManager.default
+    private var downloadTask: Task<Void, Error>?
 
     var modelsDirectory: URL {
         Constants.Models.modelsDirectory
@@ -63,37 +64,57 @@ final class ModelManager {
     func download(modelId: String) async throws {
         guard let model = availableModels.first(where: { $0.id == modelId }) else { return }
 
+        // Cancel any in-flight download before starting a new one.
+        downloadTask?.cancel()
+
         isDownloading = true
         downloadProgress = 0
         currentDownloadModel = modelId
 
+        let task = Task<Void, Error> { [weak self] in
+            guard let self else { return }
+            try Task.checkCancellation()
+            try self.fileManager.createDirectory(at: self.modelsDirectory, withIntermediateDirectories: true)
+
+            // WhisperKit 1.0+ provides its own vendored HuggingFace downloader (HubApiWrapper),
+            // dropping the swift-transformers dep that conflicted with LocalLLMClient.
+            let downloadedURL = try await WhisperKit.download(
+                variant: model.variant,
+                from: "argmaxinc/whisperkit-coreml",
+                progressCallback: { [weak self] progress in
+                    Task { @MainActor [weak self] in
+                        self?.downloadProgress = progress.fractionCompleted
+                    }
+                }
+            )
+            try Task.checkCancellation()
+
+            let destination = self.modelsDirectory.appendingPathComponent(downloadedURL.lastPathComponent)
+            if downloadedURL != destination && !self.fileManager.fileExists(atPath: destination.path) {
+                try self.fileManager.moveItem(at: downloadedURL, to: destination)
+            }
+
+            self.downloadProgress = 1.0
+            self.refreshDownloadedModels()
+        }
+        downloadTask = task
         defer {
             isDownloading = false
             currentDownloadModel = nil
+            downloadTask = nil
         }
+        try await task.value
+    }
 
-        try fileManager.createDirectory(at: modelsDirectory, withIntermediateDirectories: true)
-
-        // WhisperKit 1.0+ provides its own vendored HuggingFace downloader (HubApiWrapper),
-        // dropping the swift-transformers dep that conflicted with LocalLLMClient.
-        let downloadedURL = try await WhisperKit.download(
-            variant: model.variant,
-            from: "argmaxinc/whisperkit-coreml",
-            progressCallback: { [weak self] progress in
-                Task { @MainActor [weak self] in
-                    self?.downloadProgress = progress.fractionCompleted
-                }
-            }
-        )
-
-        // Move model into the app's Models directory if not already there
-        let destination = modelsDirectory.appendingPathComponent(downloadedURL.lastPathComponent)
-        if downloadedURL != destination && !fileManager.fileExists(atPath: destination.path) {
-            try fileManager.moveItem(at: downloadedURL, to: destination)
-        }
-
-        downloadProgress = 1.0
-        refreshDownloadedModels()
+    /// Cancels an in-flight model download. Safe to call when nothing is downloading.
+    /// Partial files left behind by WhisperKit's downloader are not cleaned up here —
+    /// re-running download() will resume or restart depending on HF's snapshot logic.
+    func cancelDownload() {
+        downloadTask?.cancel()
+        downloadTask = nil
+        isDownloading = false
+        currentDownloadModel = nil
+        downloadProgress = 0
     }
 
     func deleteModel(_ modelId: String) throws {
