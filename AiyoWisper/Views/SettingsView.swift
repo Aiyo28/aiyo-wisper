@@ -8,6 +8,7 @@ struct SettingsView: View {
     @ObservedObject var updaterService: UpdaterService
     let shortcutManager: ShortcutManager
     let dictionaryManager: DictionaryManager
+    let learner: DictationLearner
     var onModelSelected: (() -> Void)?
     var onLLMModelChanged: (() -> Void)?
 
@@ -22,7 +23,7 @@ struct SettingsView: View {
             }
 
             Tab("Formatting", systemImage: "textformat") {
-                FormattingTab(appState: appState, llmModelManager: llmModelManager, dictionaryManager: dictionaryManager, onLLMModelChanged: onLLMModelChanged)
+                FormattingTab(appState: appState, llmModelManager: llmModelManager, dictionaryManager: dictionaryManager, learner: learner, onLLMModelChanged: onLLMModelChanged)
             }
 
             Tab("Command Mode", systemImage: "command") {
@@ -269,6 +270,7 @@ private struct FormattingTab: View {
     let appState: AppState
     let llmModelManager: LLMModelManager
     let dictionaryManager: DictionaryManager
+    let learner: DictationLearner
     var onLLMModelChanged: (() -> Void)?
     @State private var preferredLanguage: String
     @State private var autoDetect: Bool
@@ -276,10 +278,11 @@ private struct FormattingTab: View {
     @State private var useLLMCleanup: Bool
     @State private var showingAddDictionarySheet = false
 
-    init(appState: AppState, llmModelManager: LLMModelManager, dictionaryManager: DictionaryManager, onLLMModelChanged: (() -> Void)?) {
+    init(appState: AppState, llmModelManager: LLMModelManager, dictionaryManager: DictionaryManager, learner: DictationLearner, onLLMModelChanged: (() -> Void)?) {
         self.appState = appState
         self.llmModelManager = llmModelManager
         self.dictionaryManager = dictionaryManager
+        self.learner = learner
         self.onLLMModelChanged = onLLMModelChanged
         _preferredLanguage = State(initialValue: appState.preferredLanguage)
         _autoDetect = State(initialValue: appState.autoDetectLanguage)
@@ -399,12 +402,60 @@ private struct FormattingTab: View {
                     .foregroundStyle(.secondary)
             }
 
+            if !learner.suggestions.isEmpty {
+                Section {
+                    ForEach(learner.suggestions) { suggestion in
+                        HStack {
+                            Text(suggestion.original)
+                                .fontWeight(.medium)
+                            Image(systemName: "arrow.right")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                            Text(suggestion.suggested)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button {
+                                learner.acceptSuggestion(suggestion.id, dictionaryManager: dictionaryManager)
+                            } label: {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Add to dictionary")
+
+                            Button {
+                                learner.dismissSuggestion(suggestion.id)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Dismiss")
+                        }
+                    }
+                } header: {
+                    HStack {
+                        Text("Suggested Corrections")
+                        Spacer()
+                        Button("Dismiss All") {
+                            learner.clearAllSuggestions()
+                        }
+                        .font(.caption)
+                        .buttonStyle(.borderless)
+                    }
+                } footer: {
+                    Text("Detected from your edits after dictation. Accept to auto-correct future transcriptions.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section("Dictionary") {
                 if dictionaryManager.entries.isEmpty {
                     ContentUnavailableView {
                         Label("No Words", systemImage: "character.book.closed")
                     } description: {
-                        Text("Add words and names to improve recognition accuracy.")
+                        Text("Add words and names to improve recognition accuracy. Wisper also auto-learns from edits you make after dictation.")
                     }
                 } else {
                     ForEach(dictionaryManager.entries) { entry in
