@@ -110,24 +110,57 @@ final class DictationPipeline {
         }
     }
 
+    private enum RecordingMode {
+        case dictation
+        case command
+
+        var label: String { self == .dictation ? "startRecording" : "startCommandRecording" }
+        var status: DictationStatus { self == .dictation ? .recording : .commandRecording }
+    }
+
     private func startRecording() {
-        print("[Pipeline] startRecording called — status: \(appState.status), isProcessing: \(isProcessing)")
+        startRecordingSession(mode: .dictation)
+    }
+
+    /// Shared entry point for both dictation and command recording. The two flows had
+    /// drifted into ~80 lines of duplicate guard logic — extracting them into one
+    /// codepath means new guards (permissions, model state, etc.) only need to be
+    /// added once.
+    private func startRecordingSession(mode: RecordingMode) {
+        print("[Pipeline] \(mode.label) called — status: \(appState.status), isProcessing: \(isProcessing)")
         guard appState.status == .idle else {
-            print("[Pipeline] startRecording blocked — status: \(appState.status)")
+            print("[Pipeline] \(mode.label) blocked — status: \(appState.status)")
             return
         }
         if isProcessing {
-            // Recovery: if stuck processing for >10s, force reset
+            // Recovery: if stuck processing for >10s, force reset. This is the safety
+            // net for the now-fixed isProcessing-leak bug — keep it as belt-and-suspenders.
             if let start = recordingStartTime, Date().timeIntervalSince(start) > 10 {
-                print("[Pipeline] Force-resetting stale isProcessing flag")
+                print("[Pipeline] Force-resetting stale isProcessing flag (\(mode.label))")
                 isProcessing = false
             } else {
-                print("[Pipeline] startRecording blocked — isProcessing: true")
+                print("[Pipeline] \(mode.label) blocked — isProcessing: true")
                 return
             }
         }
+
+        // Command-mode-only preconditions
+        if mode == .command {
+            guard appState.commandModeEnabled else {
+                print("[Pipeline] Command mode disabled in settings")
+                return
+            }
+            guard commandProcessor != nil else {
+                print("[Pipeline] Command processor is nil — LLM backend not wired")
+                appState.errorMessage = "Download AI model in Settings → Formatting to enable command mode"
+                return
+            }
+        }
+
         isProcessing = true
-        defer { if appState.status != .recording { isProcessing = false } }
+        let targetStatus = mode.status
+        defer { if appState.status != targetStatus { isProcessing = false } }
+
         guard appState.isModelLoaded else {
             if modelManager.modelPath(for: appState.selectedModel) == nil {
                 appState.errorMessage = "Model \"\(appState.selectedModel)\" not downloaded — open Settings → Transcription to download"
@@ -152,11 +185,13 @@ final class DictationPipeline {
 
         do {
             try audioRecorder.startRecording()
-            appState.status = .recording
+            appState.status = targetStatus
+            if mode == .command { appState.isCommandMode = true }
             recordingStartTime = Date()
         } catch {
             appState.status = .error
             appState.errorMessage = "Recording failed: \(error.localizedDescription)"
+            if mode == .command { appState.isCommandMode = false }
             scheduleErrorReset()
         }
     }
@@ -235,64 +270,7 @@ final class DictationPipeline {
     // MARK: - Command Mode
 
     private func startCommandRecording() {
-        print("[Pipeline] startCommandRecording called — status: \(appState.status), isProcessing: \(isProcessing)")
-        guard appState.status == .idle else {
-            print("[Pipeline] startCommandRecording blocked — status: \(appState.status)")
-            return
-        }
-        if isProcessing {
-            if let start = recordingStartTime, Date().timeIntervalSince(start) > 10 {
-                print("[Pipeline] Force-resetting stale isProcessing flag (command)")
-                isProcessing = false
-            } else {
-                print("[Pipeline] startCommandRecording blocked — isProcessing: true")
-                return
-            }
-        }
-        guard appState.commandModeEnabled else {
-            print("[Pipeline] Command mode disabled in settings")
-            return
-        }
-        guard commandProcessor != nil else {
-            print("[Pipeline] Command processor is nil — LLM backend not wired")
-            appState.errorMessage = "Download AI model in Settings → Formatting to enable command mode"
-            return
-        }
-        isProcessing = true
-        defer { if appState.status != .commandRecording { isProcessing = false } }
-        guard appState.isModelLoaded else {
-            if modelManager.modelPath(for: appState.selectedModel) == nil {
-                appState.errorMessage = "Model \"\(appState.selectedModel)\" not downloaded — open Settings → Transcription to download"
-            } else {
-                appState.errorMessage = "Model is still loading, please wait..."
-            }
-            return
-        }
-        guard PermissionService.checkMicrophonePermission() else {
-            appState.errorMessage = "Microphone permission not granted"
-            scheduleErrorReset()
-            return
-        }
-        guard PermissionService.checkAccessibilityPermission() else {
-            appState.errorMessage = "Accessibility permission not working — if already enabled, toggle it OFF then ON in System Settings → Privacy & Security → Accessibility"
-            PermissionService.openAccessibilitySettings()
-            startAccessibilityPolling()
-            return
-        }
-
-        appState.errorMessage = nil
-
-        do {
-            try audioRecorder.startRecording()
-            appState.status = .commandRecording
-            appState.isCommandMode = true
-            recordingStartTime = Date()
-        } catch {
-            appState.status = .error
-            appState.errorMessage = "Recording failed: \(error.localizedDescription)"
-            appState.isCommandMode = false
-            scheduleErrorReset()
-        }
+        startRecordingSession(mode: .command)
     }
 
     private func stopCommandRecordingAndProcess() async {
