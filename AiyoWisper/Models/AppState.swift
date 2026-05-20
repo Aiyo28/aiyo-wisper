@@ -60,7 +60,7 @@ final class AppState {
     @AppStorage(Constants.UserDefaultsKeys.minimalFormattingForEditors) var minimalFormattingForEditors: Bool = true
 
     @ObservationIgnored
-    @AppStorage(Constants.UserDefaultsKeys2.useLLMCleanup) var useLLMCleanup: Bool = true
+    @AppStorage(Constants.UserDefaultsKeys.useLLMCleanup) var useLLMCleanup: Bool = true
 
     @ObservationIgnored
     @AppStorage(Constants.UserDefaultsKeys.commandModeEnabled) var commandModeEnabled: Bool = true
