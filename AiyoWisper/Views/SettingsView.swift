@@ -148,7 +148,7 @@ private struct GeneralTab: View {
                         Text("Free, local voice-to-text dictation")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text("Version 0.1.0")
+                        Text("Version \(Bundle.main.appVersion)")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -794,5 +794,13 @@ private struct ModelRow: View {
                     .disabled(!canDownload)
             }
         }
+    }
+}
+
+private extension Bundle {
+    var appVersion: String {
+        let short = infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "\(short) (\(build))"
     }
 }
