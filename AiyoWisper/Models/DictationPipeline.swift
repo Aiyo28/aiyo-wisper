@@ -16,6 +16,11 @@ final class DictationPipeline {
     private var llmBackend: (any LLMBackend)?
     private var recordingStartTime: Date?
     private var isProcessing = false
+    /// Idempotency guard for start(). OnboardingView fires onComplete?() from both
+    /// step-4 .onAppear and the Finish button, so start() can be called twice in
+    /// quick succession — without this guard, the second call would spawn a parallel
+    /// loadSelectedModel() Task racing against the first.
+    private var hasStarted = false
 
     /// Invoked when the LLM cleanup model is detected as corrupted at runtime.
     /// App layer should delete the file, drop the backend, and disable LLM cleanup.
@@ -41,6 +46,12 @@ final class DictationPipeline {
     }
 
     func start() {
+        guard !hasStarted else {
+            print("[Pipeline] start() called twice — ignoring (already running)")
+            return
+        }
+        hasStarted = true
+
         hotkeyService.onKeyDown = { [weak self] in
             guard let self else { return }
             Task { @MainActor in
@@ -286,6 +297,10 @@ final class DictationPipeline {
 
     private func stopCommandRecordingAndProcess() async {
         guard appState.status == .commandRecording else { return }
+        // Single source of truth for the in-flight flag — mirrors stopRecordingAndTranscribe.
+        // Without this, every early-return below has to remember to reset it manually, and
+        // a missed reset only surfaces 10s later via the force-reset workaround.
+        defer { isProcessing = false }
 
         let duration = recordingStartTime.map { Date().timeIntervalSince($0) } ?? 0
         let samples = audioRecorder.stopRecording()
@@ -293,7 +308,6 @@ final class DictationPipeline {
         if duration < Constants.Audio.minimumRecordingDuration {
             appState.status = .idle
             appState.isCommandMode = false
-            isProcessing = false
             return
         }
 
@@ -306,7 +320,6 @@ final class DictationPipeline {
             guard !result.text.isEmpty else {
                 appState.status = .idle
                 appState.isCommandMode = false
-                isProcessing = false
                 return
             }
 
@@ -318,7 +331,6 @@ final class DictationPipeline {
                 appState.errorMessage = "No text selected — select text before using command mode"
                 appState.status = .error
                 appState.isCommandMode = false
-                isProcessing = false
                 scheduleErrorReset()
                 return
             }
@@ -331,7 +343,6 @@ final class DictationPipeline {
                 appState.errorMessage = "Command processor not configured"
                 appState.status = .error
                 appState.isCommandMode = false
-                isProcessing = false
                 scheduleErrorReset()
                 return
             }
@@ -344,7 +355,6 @@ final class DictationPipeline {
                 print("[Command] LLM returned empty — skipping")
                 appState.status = .idle
                 appState.isCommandMode = false
-                isProcessing = false
                 return
             }
 
@@ -354,12 +364,10 @@ final class DictationPipeline {
             appState.addTranscription(transformed, isCommand: true)
             appState.status = .idle
             appState.isCommandMode = false
-            isProcessing = false
         } catch {
             appState.status = .error
             appState.errorMessage = "Command processing failed: \(error.localizedDescription)"
             appState.isCommandMode = false
-            isProcessing = false
             scheduleErrorReset()
         }
     }
