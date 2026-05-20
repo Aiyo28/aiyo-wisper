@@ -92,10 +92,18 @@ struct SmartFormatter {
 
     // MARK: - LLM Cleanup
 
-    func cleanupWithLLM(_ text: String, backend: any LLMBackend) async -> String {
+    struct LLMCleanupResult {
+        let text: String
+        /// True when the failure was a corrupted/unloadable model file. Pipeline uses this
+        /// to disable LLM cleanup and delete the bad file. Other failures (timeout, empty
+        /// response) keep the LLM backend wired so subsequent calls can retry.
+        let modelCorrupted: Bool
+    }
+
+    func cleanupWithLLM(_ text: String, backend: any LLMBackend) async -> LLMCleanupResult {
         let parameters = LLMParameters(temperature: 0.2, maxTokens: 512)
         do {
-            return try await withThrowingTaskGroup(of: String.self) { group in
+            let result = try await withThrowingTaskGroup(of: String.self) { group in
                 group.addTask {
                     try await backend.complete(
                         systemPrompt: Constants.LLM.cleanupSystemPrompt,
@@ -107,13 +115,17 @@ struct SmartFormatter {
                     try await Task.sleep(for: .seconds(Constants.LLM.cleanupTimeout))
                     throw LLMError.inferenceTimeout
                 }
-                let result = try await group.next()!
+                let value = try await group.next()!
                 group.cancelAll()
-                return result
+                return value
             }
+            return LLMCleanupResult(text: result, modelCorrupted: false)
+        } catch LLMError.modelCorrupted {
+            print("[SmartFormatter] LLM model corrupted — disabling cleanup")
+            return LLMCleanupResult(text: text, modelCorrupted: true)
         } catch {
             print("[SmartFormatter] LLM cleanup failed, using regex output: \(error)")
-            return text
+            return LLMCleanupResult(text: text, modelCorrupted: false)
         }
     }
 
