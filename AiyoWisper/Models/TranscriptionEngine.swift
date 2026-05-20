@@ -6,6 +6,13 @@ struct TranscriptionResult {
     let language: String
 }
 
+/// Wraps WhisperKit for CoreML-backed transcription.
+///
+/// **Threading contract:** `@unchecked Sendable` because WhisperKit's own types aren't
+/// `Sendable` under Swift 6 strict concurrency. The pipeline calls `loadModel` and
+/// `transcribe` exclusively from `@MainActor` with `await`, so mutation of
+/// `whisperKit` and `isModelLoaded` is naturally serialized. If a future caller
+/// crosses that boundary (e.g. background transcription), convert this to an `actor`.
 final class TranscriptionEngine: @unchecked Sendable {
     private var whisperKit: WhisperKit?
     private(set) var isModelLoaded = false
