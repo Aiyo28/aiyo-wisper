@@ -1,20 +1,23 @@
 import Carbon.HIToolbox
 import Cocoa
 
+/// All public methods are `async` because they can take 100-1000ms (clipboard wait,
+/// per-character delays). The previous sync API used `usleep`, which stalled the run
+/// loop on @MainActor call paths and dropped pending keyboard events.
 struct TextInjector {
     @discardableResult
-    static func inject(_ text: String, charByChar: Bool = false) -> Bool {
+    static func inject(_ text: String, charByChar: Bool = false) async -> Bool {
         guard PermissionService.checkAccessibilityPermission() else { return false }
 
         let frontApp = NSWorkspace.shared.frontmostApplication
         let bundleID = frontApp?.bundleIdentifier ?? ""
 
         if Constants.TextInjection.terminalBundleIDs.contains(bundleID) {
-            injectViaClipboard(text)
+            await injectViaClipboard(text)
         } else if charByChar {
-            injectViaKeyboardCharByChar(text)
+            await injectViaKeyboardCharByChar(text)
         } else {
-            injectViaKeyboard(text)
+            await injectViaKeyboard(text)
         }
         return true
     }
@@ -23,7 +26,7 @@ struct TextInjector {
 
     /// Reads the currently selected text by simulating Cmd+C and reading the clipboard.
     /// Returns nil if no text is selected.
-    static func readSelection() -> String? {
+    static func readSelection() async -> String? {
         let pasteboard = NSPasteboard.general
         let previousContents = pasteboard.string(forType: .string)
 
@@ -31,7 +34,8 @@ struct TextInjector {
 
         simulateKeyCombination(keyCode: CGKeyCode(kVK_ANSI_C), flags: .maskCommand)
 
-        usleep(200_000)
+        // Async sleep — does NOT block the main run loop.
+        try? await Task.sleep(for: .milliseconds(200))
 
         let selection = pasteboard.string(forType: .string)
 
@@ -84,8 +88,9 @@ struct TextInjector {
 
     // MARK: - CGEvent keyboard simulation
 
-    private static func injectViaKeyboard(_ text: String) {
+    private static func injectViaKeyboard(_ text: String) async {
         let source = CGEventSource(stateID: .hidSystemState)
+        let chunkDelay = Constants.TextInjection.interCharacterDelay
 
         // Process text in chunks that fit CGEvent's unicode string limit (20 chars)
         let chunkSize = 20
@@ -103,15 +108,16 @@ struct TextInjector {
             keyDown?.post(tap: .cgAnnotatedSessionEventTap)
             keyUp?.post(tap: .cgAnnotatedSessionEventTap)
 
-            usleep(Constants.TextInjection.interCharacterDelay)
+            try? await Task.sleep(for: .microseconds(Int(chunkDelay)))
             index = end
         }
     }
 
     // MARK: - Character-by-character keyboard simulation (Raycast/text expander compatible)
 
-    private static func injectViaKeyboardCharByChar(_ text: String) {
+    private static func injectViaKeyboardCharByChar(_ text: String) async {
         let source = CGEventSource(stateID: .hidSystemState)
+        let charDelay = Constants.TextInjection.interCharacterDelay
 
         for char in text {
             let utf16 = Array(String(char).utf16)
@@ -125,13 +131,13 @@ struct TextInjector {
             keyDown?.post(tap: .cgAnnotatedSessionEventTap)
             keyUp?.post(tap: .cgAnnotatedSessionEventTap)
 
-            usleep(Constants.TextInjection.interCharacterDelay)
+            try? await Task.sleep(for: .microseconds(Int(charDelay)))
         }
     }
 
     // MARK: - Clipboard fallback for terminals
 
-    private static func injectViaClipboard(_ text: String) {
+    private static func injectViaClipboard(_ text: String) async {
         let pasteboard = NSPasteboard.general
         let previousContents = pasteboard.string(forType: .string)
 
