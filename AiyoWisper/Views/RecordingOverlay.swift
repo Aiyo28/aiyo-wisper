@@ -17,7 +17,6 @@ final class RecordingOverlay {
         guard let appState else { return }
         withObservationTracking {
             _ = appState.status
-            _ = appState.lastCommand
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 self?.updateVisibility()
@@ -29,8 +28,7 @@ final class RecordingOverlay {
     private func updateVisibility() {
         guard let appState else { return }
         switch appState.status {
-        case .recording, .transcribing, .cleaning,
-             .commandRecording, .commandTranscribing, .commandProcessing:
+        case .recording, .transcribing, .error:
             show(status: appState.status)
         default:
             hide()
@@ -80,8 +78,13 @@ final class RecordingOverlay {
             panel.animator().setFrameOrigin(NSPoint(x: currentOrigin.x, y: currentOrigin.y - 20))
             panel.animator().alphaValue = 0
         }, completionHandler: { [weak self] in
-            panel.orderOut(nil)
-            self?.hostingView?.rootView = RecordingOverlayContent(status: .idle)
+            // NSAnimationContext invokes completion on the main thread, but the closure
+            // type is @Sendable so the compiler can't infer MainActor isolation. Hop
+            // back explicitly to touch `panel.orderOut` and the @MainActor `hostingView`.
+            MainActor.assumeIsolated {
+                panel.orderOut(nil)
+                self?.hostingView?.rootView = RecordingOverlayContent(status: .idle)
+            }
         })
     }
 
@@ -118,25 +121,35 @@ final class RecordingOverlay {
 private struct RecordingOverlayContent: View {
     let status: DictationStatus
 
-    private var isCommandMode: Bool {
-        switch status {
-        case .commandRecording, .commandTranscribing, .commandProcessing:
-            true
-        default:
-            false
-        }
+    private var isRecording: Bool {
+        status == .recording
     }
 
-    private var isRecording: Bool {
-        status == .recording || status == .commandRecording
+    private var isError: Bool {
+        status == .error
+    }
+
+    /// Pill background tint shifts to a warning red when something failed so the
+    /// user has an unmistakable visual cue alongside the menu-bar error message.
+    /// Without this, an error state previously hid the overlay completely and the
+    /// failure was visually identical to a successful but silent dictation.
+    private var pillFill: Color {
+        isError ? Color(red: 0.55, green: 0.10, blue: 0.10).opacity(0.92)
+                : Color.black.opacity(0.85)
     }
 
     var body: some View {
         RoundedRectangle(cornerRadius: 22)
-            .fill(Color.black.opacity(0.85))
+            .fill(pillFill)
             .frame(width: 120, height: 44)
             .overlay {
-                WaveformView(isRecording: isRecording, isCommandMode: isCommandMode)
+                if isError {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.white)
+                        .font(.system(size: 18, weight: .semibold))
+                } else {
+                    WaveformView(isRecording: isRecording)
+                }
             }
     }
 }
@@ -145,7 +158,6 @@ private struct RecordingOverlayContent: View {
 
 private struct WaveformView: View {
     let isRecording: Bool
-    let isCommandMode: Bool
 
     private let barCount = 9
     private let barWidth: CGFloat = 3
@@ -156,15 +168,11 @@ private struct WaveformView: View {
     @State private var barHeights: [CGFloat] = Array(repeating: 4, count: 9)
     @State private var animationTimer: Timer?
 
-    private var barColor: Color {
-        isCommandMode ? Color(red: 0.7, green: 0.5, blue: 1.0) : .white
-    }
-
     var body: some View {
         HStack(spacing: barSpacing) {
             ForEach(0..<barCount, id: \.self) { index in
                 RoundedRectangle(cornerRadius: 1.5)
-                    .fill(barColor)
+                    .fill(Color.white)
                     .frame(width: barWidth, height: barHeights[index])
             }
         }

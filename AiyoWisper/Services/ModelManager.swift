@@ -76,8 +76,6 @@ final class ModelManager {
             try Task.checkCancellation()
             try self.fileManager.createDirectory(at: self.modelsDirectory, withIntermediateDirectories: true)
 
-            // WhisperKit 1.0+ provides its own vendored HuggingFace downloader (HubApiWrapper),
-            // dropping the swift-transformers dep that conflicted with LocalLLMClient.
             let downloadedURL = try await WhisperKit.download(
                 variant: model.variant,
                 from: "argmaxinc/whisperkit-coreml",

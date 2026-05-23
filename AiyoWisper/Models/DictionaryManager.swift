@@ -77,7 +77,7 @@ final class DictionaryManager {
             let data = try Data(contentsOf: url)
             entries = try JSONDecoder().decode([DictionaryEntry].self, from: data)
         } catch {
-            print("[DictionaryManager] Failed to load: \(error)")
+            Log.dictionary.error("Failed to load: \(error)")
         }
     }
 
@@ -89,7 +89,7 @@ final class DictionaryManager {
             let data = try JSONEncoder().encode(entries)
             try data.write(to: url, options: .atomic)
         } catch {
-            print("[DictionaryManager] Failed to save: \(error)")
+            Log.dictionary.error("Failed to save: \(error)")
         }
     }
 }

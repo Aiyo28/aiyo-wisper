@@ -4,13 +4,11 @@ import ServiceManagement
 struct SettingsView: View {
     let appState: AppState
     let modelManager: ModelManager
-    let llmModelManager: LLMModelManager
     @ObservedObject var updaterService: UpdaterService
     let shortcutManager: ShortcutManager
     let dictionaryManager: DictionaryManager
     let learner: DictationLearner
     var onModelSelected: (() -> Void)?
-    var onLLMModelChanged: (() -> Void)?
 
     var body: some View {
         TabView {
@@ -23,11 +21,7 @@ struct SettingsView: View {
             }
 
             Tab("Formatting", systemImage: "textformat") {
-                FormattingTab(appState: appState, llmModelManager: llmModelManager, dictionaryManager: dictionaryManager, learner: learner, onLLMModelChanged: onLLMModelChanged)
-            }
-
-            Tab("Command Mode", systemImage: "command") {
-                CommandModeTab(appState: appState)
+                FormattingTab(appState: appState, dictionaryManager: dictionaryManager, learner: learner)
             }
 
             Tab("Transcription", systemImage: "cpu") {
@@ -81,16 +75,9 @@ private struct GeneralTab: View {
                     ForEach(appState.transcriptionHistory) { entry in
                         HStack(alignment: .top, spacing: 8) {
                             VStack(alignment: .leading, spacing: 4) {
-                                HStack(spacing: 6) {
-                                    if entry.isCommand {
-                                        Image(systemName: "command")
-                                            .font(.caption2)
-                                            .foregroundStyle(.purple)
-                                    }
-                                    Text(entry.date, style: .time)
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
+                                Text(entry.date, style: .time)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
                                 Text(entry.text)
                                     .font(.callout)
                                     .lineLimit(3)
@@ -167,20 +154,11 @@ private struct InputTab: View {
 
     var body: some View {
         Form {
-            Section("Hotkeys") {
+            Section("Hotkey") {
                 HStack {
                     Text("Dictation hotkey")
                     Spacer()
                     Text("Control (hold)")
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
-                }
-
-                HStack {
-                    Text("Command hotkey")
-                    Spacer()
-                    Text("Option (hold)")
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
@@ -268,107 +246,24 @@ private struct AddShortcutSheet: View {
 
 private struct FormattingTab: View {
     let appState: AppState
-    let llmModelManager: LLMModelManager
     let dictionaryManager: DictionaryManager
     let learner: DictationLearner
-    var onLLMModelChanged: (() -> Void)?
     @State private var preferredLanguage: String
     @State private var autoDetect: Bool
     @State private var minimalFormatting: Bool
-    @State private var useLLMCleanup: Bool
     @State private var showingAddDictionarySheet = false
 
-    init(appState: AppState, llmModelManager: LLMModelManager, dictionaryManager: DictionaryManager, learner: DictationLearner, onLLMModelChanged: (() -> Void)?) {
+    init(appState: AppState, dictionaryManager: DictionaryManager, learner: DictationLearner) {
         self.appState = appState
-        self.llmModelManager = llmModelManager
         self.dictionaryManager = dictionaryManager
         self.learner = learner
-        self.onLLMModelChanged = onLLMModelChanged
         _preferredLanguage = State(initialValue: appState.preferredLanguage)
         _autoDetect = State(initialValue: appState.autoDetectLanguage)
         _minimalFormatting = State(initialValue: appState.minimalFormattingForEditors)
-        _useLLMCleanup = State(initialValue: appState.useLLMCleanup)
     }
 
     var body: some View {
         Form {
-            Section("AI Text Cleanup") {
-                Toggle("Use AI to clean up transcriptions", isOn: $useLLMCleanup)
-                    .onChange(of: useLLMCleanup) { _, newValue in
-                        appState.useLLMCleanup = newValue
-                        if newValue && !llmModelManager.isModelDownloaded && !llmModelManager.isDownloading {
-                            llmModelManager.download()
-                        }
-                    }
-
-                Text("Removes filler words, fixes self-corrections, and adds punctuation using a local AI model. All processing stays on your device.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Text(Constants.LLM.defaultModelName)
-                                .fontWeight(.medium)
-                            if llmModelManager.isModelDownloaded {
-                                Text("Active")
-                                    .font(.caption2)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(.blue.opacity(0.2), in: Capsule())
-                                    .foregroundStyle(.blue)
-                            }
-                        }
-                        Text("\(Constants.LLM.defaultModelSize) — also used for command mode")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                    Spacer()
-
-                    if llmModelManager.isModelDownloaded {
-                        Button("Delete", role: .destructive) {
-                            llmModelManager.deleteModel()
-                            useLLMCleanup = false
-                            appState.useLLMCleanup = false
-                            onLLMModelChanged?()
-                        }
-                        .controlSize(.small)
-                    } else if llmModelManager.isDownloading {
-                        VStack(alignment: .trailing, spacing: 4) {
-                            ProgressView(value: llmModelManager.downloadProgress)
-                                .frame(width: 100)
-                            HStack(spacing: 8) {
-                                Text("\(Int(llmModelManager.downloadProgress * 100))%")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                Button("Cancel") {
-                                    llmModelManager.cancelDownload()
-                                }
-                                .controlSize(.mini)
-                            }
-                        }
-                    } else {
-                        Button("Download") {
-                            llmModelManager.download()
-                        }
-                        .controlSize(.small)
-                    }
-                }
-
-                if let error = llmModelManager.downloadError {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-            }
-            .onChange(of: llmModelManager.isModelDownloaded) { _, isDownloaded in
-                if isDownloaded {
-                    useLLMCleanup = true
-                    appState.useLLMCleanup = true
-                    onLLMModelChanged?()
-                }
-            }
-
             Section("Language") {
                 Picker("Preferred language", selection: $preferredLanguage) {
                     ForEach(Constants.Language.available, id: \.code) { lang in
@@ -545,133 +440,6 @@ private struct AddDictionaryEntrySheet: View {
     }
 }
 
-// MARK: - Command Mode
-
-private struct CommandModeTab: View {
-    let appState: AppState
-
-    @State private var commandModeEnabled: Bool
-
-    @AppStorage(Constants.UserDefaultsKeys.llmPreset) private var presetRaw: String = Constants.LLM.defaultPreset
-    @AppStorage(Constants.UserDefaultsKeys.llmTemperature) private var temperature: Double = Constants.LLM.defaultTemperature
-    @AppStorage(Constants.UserDefaultsKeys.llmMaxTokens) private var maxTokens: Int = Constants.LLM.defaultMaxTokens
-
-    init(appState: AppState) {
-        self.appState = appState
-        _commandModeEnabled = State(initialValue: appState.commandModeEnabled)
-    }
-
-    var body: some View {
-        Form {
-            Section {
-                Toggle("Enable command mode", isOn: $commandModeEnabled)
-                    .onChange(of: commandModeEnabled) { _, newValue in
-                        appState.commandModeEnabled = newValue
-                    }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Select text in any app, hold Option, and speak a command. The selected text will be transformed by AI.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Examples:")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.secondary)
-                        Text("\"make this more formal\"  ·  \"fix the grammar\"  ·  \"translate to Russian\"  ·  \"rewrite as bullet points\"  ·  \"make this shorter\"")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-
-                    Text("Requires the AI model — download it in Settings → Formatting.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-            }
-
-            Section("Quality Preset") {
-                Picker("Preset", selection: Binding(
-                    get: { presetRaw },
-                    set: { newValue in
-                        presetRaw = newValue
-                        applyPreset(newValue)
-                    }
-                )) {
-                    Text("Fast").tag("fast")
-                    Text("Balanced").tag("balanced")
-                    Text("Creative").tag("creative")
-                }
-                .pickerStyle(.segmented)
-            }
-
-            Section {
-                DisclosureGroup("Advanced") {
-                    VStack(alignment: .leading, spacing: 16) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text("Temperature")
-                                    .font(.caption)
-                                Spacer()
-                                Text(String(format: "%.1f", temperature))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Slider(value: $temperature, in: 0.0...1.0, step: 0.1)
-                            HStack {
-                                Text("Deterministic").font(.caption2).foregroundStyle(.tertiary)
-                                Spacer()
-                                Text("Creative").font(.caption2).foregroundStyle(.tertiary)
-                            }
-                        }
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text("Max Tokens")
-                                    .font(.caption)
-                                Spacer()
-                                Text("\(maxTokens)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Slider(value: Binding(
-                                get: { Double(maxTokens) },
-                                set: { maxTokens = Int($0) }
-                            ), in: 256...4096, step: 128)
-                        }
-
-                        HStack {
-                            Spacer()
-                            Button("Reset to Balanced") {
-                                applyPreset("balanced")
-                            }
-                            .controlSize(.small)
-                        }
-                    }
-                }
-            }
-        }
-        .formStyle(.grouped)
-    }
-
-    private func applyPreset(_ preset: String) {
-        switch preset {
-        case "fast":
-            temperature = 0.2
-            maxTokens = 512
-        case "balanced":
-            temperature = Constants.LLM.defaultTemperature
-            maxTokens = Constants.LLM.defaultMaxTokens
-        case "creative":
-            temperature = 0.7
-            maxTokens = 2048
-        default:
-            break
-        }
-        presetRaw = preset
-    }
-}
-
 // MARK: - Transcription (formerly Models)
 
 private struct TranscriptionTab: View {
@@ -747,6 +515,9 @@ private struct ModelRow: View {
                 HStack(spacing: 6) {
                     Text(model.name)
                         .fontWeight(.medium)
+                    Text("[\(model.id)]")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.tertiary)
                     Text(model.size)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -784,9 +555,18 @@ private struct ModelRow: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     ProgressView(value: downloadProgress)
                         .frame(width: 100)
-                    Text("\(Int(downloadProgress * 100))%")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        Text(model.variant)
+                            .font(.caption2.monospaced())
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .frame(maxWidth: 140)
+                        Text("\(Int(downloadProgress * 100))%")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
                 }
             } else {
                 Button("Download", action: onDownload)

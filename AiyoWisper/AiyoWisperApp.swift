@@ -4,7 +4,6 @@ import SwiftUI
 struct AiyoWisperApp: App {
     @State private var appState = AppState()
     @State private var modelManager = ModelManager()
-    @State private var llmModelManager = LLMModelManager()
     @State private var shortcutManager = ShortcutManager()
     @State private var dictionaryManager = DictionaryManager()
     @State private var learner = DictationLearner()
@@ -35,7 +34,6 @@ struct AiyoWisperApp: App {
             SettingsView(
                 appState: appState,
                 modelManager: modelManager,
-                llmModelManager: llmModelManager,
                 updaterService: updaterService,
                 shortcutManager: shortcutManager,
                 dictionaryManager: dictionaryManager,
@@ -44,9 +42,6 @@ struct AiyoWisperApp: App {
                     Task {
                         await pipeline?.loadSelectedModel()
                     }
-                },
-                onLLMModelChanged: {
-                    updateLLMBackend()
                 }
             )
         }
@@ -54,18 +49,9 @@ struct AiyoWisperApp: App {
 
     private var menuBarIcon: String {
         switch appState.status {
-        case .recording, .commandRecording: "mic.fill"
-        case .transcribing, .cleaning, .commandTranscribing, .commandProcessing: "ellipsis.circle"
+        case .recording: "mic.fill"
+        case .transcribing: "ellipsis.circle"
         default: "waveform"
-        }
-    }
-
-    private func updateLLMBackend() {
-        if llmModelManager.modelPath != nil {
-            let backend = LocalLLMBackend(downloadModel: llmModelManager.downloadModel)
-            pipeline?.updateLLMBackend(backend)
-        } else {
-            pipeline?.updateLLMBackend(nil)
         }
     }
 
@@ -81,22 +67,10 @@ struct AiyoWisperApp: App {
         Self.migrateAutoDetectLanguage()
         let state = _appState.wrappedValue
         let manager = _modelManager.wrappedValue
-        let llmManager = _llmModelManager.wrappedValue
         let shortcuts = _shortcutManager.wrappedValue
         let dictionary = _dictionaryManager.wrappedValue
         let dictationLearner = _learner.wrappedValue
         let dictationPipeline = DictationPipeline(appState: state, modelManager: manager, shortcutManager: shortcuts, dictionaryManager: dictionary, learner: dictationLearner)
-
-        if llmManager.modelPath != nil {
-            let backend = LocalLLMBackend(downloadModel: llmManager.downloadModel)
-            dictationPipeline.updateLLMBackend(backend)
-        }
-
-        dictationPipeline.onLLMCorrupted = { [weak llmManager] in
-            Task { @MainActor in
-                llmManager?.markCorruptAndDelete(reason: "Model failed to load")
-            }
-        }
 
         _pipeline = State(initialValue: dictationPipeline)
 
@@ -106,7 +80,14 @@ struct AiyoWisperApp: App {
         if state.isOnboarded {
             dictationPipeline.start()
         } else {
-            NSApp.activate(ignoringOtherApps: true)
+            // NSApp is nil during SwiftUI App.init() — AppKit hasn't bootstrapped yet.
+            // Defer the activate call to the next runloop tick when NSApplication.shared
+            // is available. Activation is needed for LSUIElement apps to give the
+            // onboarding window keyboard focus (the Window's .defaultLaunchBehavior
+            // handles presentation, but not focus).
+            DispatchQueue.main.async {
+                NSApp?.activate(ignoringOtherApps: true)
+            }
         }
     }
 }

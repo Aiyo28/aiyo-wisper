@@ -166,6 +166,9 @@ struct OnboardingView: View {
                                 HStack(spacing: 6) {
                                     Text(model.name)
                                         .fontWeight(.medium)
+                                    Text("[\(model.id)]")
+                                        .font(.caption.monospaced())
+                                        .foregroundStyle(.tertiary)
                                     Text(model.size)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
@@ -211,10 +214,19 @@ struct OnboardingView: View {
                         if modelManager.isDownloading && modelManager.currentDownloadModel == model.id {
                             ProgressView(value: modelManager.downloadProgress)
                                 .progressViewStyle(.linear)
-                            Text("\(Int(modelManager.downloadProgress * 100))%")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .trailing)
+                            HStack(spacing: 4) {
+                                Text("Downloading")
+                                Text(model.variant)
+                                    .font(.caption2.monospaced())
+                                    .foregroundStyle(.tertiary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                Spacer()
+                                Text("\(Int(modelManager.downloadProgress * 100))%")
+                                    .monospacedDigit()
+                            }
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                         }
                     }
                     .padding(.vertical, 6)

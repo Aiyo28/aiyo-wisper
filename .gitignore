@@ -1,7 +1,16 @@
 # Xcode
 build/
 DerivedData/
+*.profraw
 *.pbxuser
+
+# Local planning docs — live in Knowledge OS vault, never in OSS repo
+docs/plans/
+
+# XcodeBuildMCP session profile — local-only
+.xcodebuildmcp/
+
+
 !default.pbxuser
 *.mode1v3
 !default.mode1v3

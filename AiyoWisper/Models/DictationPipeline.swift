@@ -12,8 +12,6 @@ final class DictationPipeline {
     private let shortcutManager: ShortcutManager
     private let dictionaryManager: DictionaryManager
     private let learner: DictationLearner
-    private var commandProcessor: CommandProcessor?
-    private var llmBackend: (any LLMBackend)?
     private var recordingStartTime: Date?
     private var isProcessing = false
     /// Idempotency guard for start(). OnboardingView fires onComplete?() from both
@@ -21,10 +19,6 @@ final class DictationPipeline {
     /// quick succession — without this guard, the second call would spawn a parallel
     /// loadSelectedModel() Task racing against the first.
     private var hasStarted = false
-
-    /// Invoked when the LLM cleanup model is detected as corrupted at runtime.
-    /// App layer should delete the file, drop the backend, and disable LLM cleanup.
-    var onLLMCorrupted: (() -> Void)?
 
     init(appState: AppState, modelManager: ModelManager, shortcutManager: ShortcutManager, dictionaryManager: DictionaryManager, learner: DictationLearner) {
         self.appState = appState
@@ -34,57 +28,28 @@ final class DictationPipeline {
         self.learner = learner
     }
 
-    func updateLLMBackend(_ backend: (any LLMBackend)?) {
-        self.llmBackend = backend
-        if let backend {
-            commandProcessor = CommandProcessor(backend: backend)
-            print("[Pipeline] LLM backend wired — command mode available")
-        } else {
-            commandProcessor = nil
-            print("[Pipeline] LLM backend removed — command mode disabled")
-        }
-    }
-
     func start() {
         guard !hasStarted else {
-            print("[Pipeline] start() called twice — ignoring (already running)")
+            Log.pipeline.info("start() called twice — ignoring (already running)")
             return
         }
         hasStarted = true
 
         hotkeyService.onKeyDown = { [weak self] in
             guard let self else { return }
-            Task { @MainActor in
-                self.startRecording()
-            }
+            Task { @MainActor in self.startRecording() }
         }
 
         hotkeyService.onKeyUp = { [weak self] in
             guard let self else { return }
-            Task { @MainActor in
-                await self.stopRecordingAndTranscribe()
-            }
-        }
-
-        hotkeyService.onCommandKeyDown = { [weak self] in
-            guard let self else { return }
-            Task { @MainActor in
-                self.startCommandRecording()
-            }
-        }
-
-        hotkeyService.onCommandKeyUp = { [weak self] in
-            guard let self else { return }
-            Task { @MainActor in
-                await self.stopCommandRecordingAndProcess()
-            }
+            Task { @MainActor in await self.stopRecordingAndTranscribe() }
         }
 
         Task {
             await loadSelectedModel()
             await ensurePermissions()
             hotkeyService.start()
-            print("[Pipeline] Started — model loaded: \(appState.isModelLoaded), accessibility: \(PermissionService.checkAccessibilityPermission())")
+            Log.pipeline.info("Started — model loaded: \(self.appState.isModelLoaded, privacy: .public), accessibility: \(PermissionService.checkAccessibilityPermission(), privacy: .public)")
         }
     }
 
@@ -97,69 +62,46 @@ final class DictationPipeline {
         guard let modelPath = modelManager.modelPath(for: modelName) else {
             appState.isModelLoaded = false
             appState.errorMessage = "Model \"\(modelName)\" not downloaded — open Settings → Transcription to download"
+            Log.pipeline.info("loadSelectedModel: no on-disk path for '\(modelName, privacy: .public)'")
             return
         }
 
+        Log.pipeline.info("Loading Whisper model '\(modelName, privacy: .public)' from \(modelPath.path, privacy: .public)")
+        let loadStart = Date()
         do {
             try await transcriptionEngine.loadModel(path: modelPath.path)
+            let elapsed = Date().timeIntervalSince(loadStart)
             appState.isModelLoaded = true
             appState.errorMessage = nil
+            Log.pipeline.info("Model '\(modelName, privacy: .public)' loaded successfully in \(String(format: "%.1f", elapsed), privacy: .public)s")
         } catch {
+            let elapsed = Date().timeIntervalSince(loadStart)
             appState.isModelLoaded = false
             appState.errorMessage = "Failed to load model: \(error.localizedDescription)"
+            Log.pipeline.error("Model '\(modelName, privacy: .public)' load FAILED after \(String(format: "%.1f", elapsed), privacy: .public)s: \(error.localizedDescription, privacy: .public)")
         }
-    }
-
-    private enum RecordingMode {
-        case dictation
-        case command
-
-        var label: String { self == .dictation ? "startRecording" : "startCommandRecording" }
-        var status: DictationStatus { self == .dictation ? .recording : .commandRecording }
     }
 
     private func startRecording() {
-        startRecordingSession(mode: .dictation)
-    }
-
-    /// Shared entry point for both dictation and command recording. The two flows had
-    /// drifted into ~80 lines of duplicate guard logic — extracting them into one
-    /// codepath means new guards (permissions, model state, etc.) only need to be
-    /// added once.
-    private func startRecordingSession(mode: RecordingMode) {
-        print("[Pipeline] \(mode.label) called — status: \(appState.status), isProcessing: \(isProcessing)")
+        Log.pipeline.info("startRecording called — status: \(self.appState.status.rawValue, privacy: .public), isProcessing: \(self.isProcessing, privacy: .public)")
         guard appState.status == .idle else {
-            print("[Pipeline] \(mode.label) blocked — status: \(appState.status)")
+            Log.pipeline.info("startRecording blocked — status: \(self.appState.status.rawValue, privacy: .public)")
             return
         }
         if isProcessing {
-            // Recovery: if stuck processing for >10s, force reset. This is the safety
-            // net for the now-fixed isProcessing-leak bug — keep it as belt-and-suspenders.
+            // Recovery: if stuck processing for >10s, force reset. Belt-and-suspenders
+            // for the now-fixed isProcessing-leak bug.
             if let start = recordingStartTime, Date().timeIntervalSince(start) > 10 {
-                print("[Pipeline] Force-resetting stale isProcessing flag (\(mode.label))")
+                Log.pipeline.info("Force-resetting stale isProcessing flag")
                 isProcessing = false
             } else {
-                print("[Pipeline] \(mode.label) blocked — isProcessing: true")
-                return
-            }
-        }
-
-        // Command-mode-only preconditions
-        if mode == .command {
-            guard appState.commandModeEnabled else {
-                print("[Pipeline] Command mode disabled in settings")
-                return
-            }
-            guard commandProcessor != nil else {
-                print("[Pipeline] Command processor is nil — LLM backend not wired")
-                appState.errorMessage = "Download AI model in Settings → Formatting to enable command mode"
+                Log.pipeline.info("startRecording blocked — isProcessing: true")
                 return
             }
         }
 
         isProcessing = true
-        let targetStatus = mode.status
-        defer { if appState.status != targetStatus { isProcessing = false } }
+        defer { if appState.status != .recording { isProcessing = false } }
 
         guard appState.isModelLoaded else {
             if modelManager.modelPath(for: appState.selectedModel) == nil {
@@ -185,13 +127,11 @@ final class DictationPipeline {
 
         do {
             try audioRecorder.startRecording()
-            appState.status = targetStatus
-            if mode == .command { appState.isCommandMode = true }
+            appState.status = .recording
             recordingStartTime = Date()
         } catch {
             appState.status = .error
             appState.errorMessage = "Recording failed: \(error.localizedDescription)"
-            if mode == .command { appState.isCommandMode = false }
             scheduleErrorReset()
         }
     }
@@ -215,39 +155,32 @@ final class DictationPipeline {
             let result = try await transcriptionEngine.transcribe(
                 audioSamples: samples,
                 language: language,
-                preferredLanguage: appState.preferredLanguage,
                 vocabularyWords: dictionaryManager.vocabularyWords
             )
 
             appState.detectedLanguage = result.language
 
             guard !result.text.isEmpty else {
+                // Product principle: flow > correctness. When Whisper produces no usable
+                // output (either genuine silence or structural-token-only — both signal
+                // "I couldn't decode this"), we go SILENT back to idle. No red pill, no
+                // error banner, no menu-bar alarm. The user can press the hotkey again
+                // immediately without having to dismiss anything. Logs still capture the
+                // failure for diagnosis.
+                Log.pipeline.info("Transcribe returned empty for \(String(format: "%.1f", duration), privacy: .public)s clip (stripped=\(result.strippedCount, privacy: .public)) — silent idle")
                 appState.status = .idle
                 return
             }
 
             let minimalMode = SmartFormatter.shouldUseMinimalMode(setting: appState.minimalFormattingForEditors)
-            var formatted = smartFormatter.format(result.text, modelId: appState.selectedModel, minimalMode: minimalMode)
+            let formatted = smartFormatter.format(result.text, modelId: appState.selectedModel, minimalMode: minimalMode)
 
             guard !formatted.isEmpty else {
+                // Same silent-fail policy: the regex passes nuked the transcript to
+                // nothing. Worth a log line for future tuning, but no UI interruption.
+                Log.pipeline.info("SmartFormatter reduced transcript to empty (in=\(result.text.count, privacy: .public) chars) — silent idle")
                 appState.status = .idle
                 return
-            }
-
-            if appState.useLLMCleanup, let backend = llmBackend {
-                appState.status = .cleaning
-                let cleanup = await smartFormatter.cleanupWithLLM(formatted, backend: backend)
-                formatted = cleanup.text
-                if cleanup.modelCorrupted {
-                    // File passed pre-flight but llama.cpp refused it (or pre-flight just flipped).
-                    // Disable cleanup so we don't keep retrying, drop the bad file, surface error.
-                    appState.useLLMCleanup = false
-                    llmBackend = nil
-                    commandProcessor = nil
-                    onLLMCorrupted?()
-                    appState.errorMessage = "AI cleanup model was corrupted — re-download in Settings → Formatting"
-                    scheduleErrorReset()
-                }
             }
 
             let corrected = dictionaryManager.applyCorrections(formatted)
@@ -255,97 +188,21 @@ final class DictationPipeline {
 
             appState.status = .injecting
             appState.lastTranscription = expanded
-            appState.addTranscription(expanded, isCommand: false)
+            appState.addTranscription(expanded)
             // Capture focused field state BEFORE injection so the learner can diff after.
             learner.captureInjection(injectedText: expanded)
-            await TextInjector.inject(expanded, charByChar: appState.characterByCharacterMode)
+            let injected = await TextInjector.inject(expanded, charByChar: appState.characterByCharacterMode)
+            if !injected {
+                Log.pipeline.info("Inject blocked — accessibility permission missing (\(expanded.count, privacy: .public) chars)")
+                appState.errorMessage = "Accessibility permission required to paste — open System Settings → Privacy & Security → Accessibility"
+                appState.status = .error
+                scheduleErrorReset()
+                return
+            }
             appState.status = .idle
         } catch {
             appState.status = .error
             appState.errorMessage = "Transcription failed: \(error.localizedDescription)"
-            scheduleErrorReset()
-        }
-    }
-
-    // MARK: - Command Mode
-
-    private func startCommandRecording() {
-        startRecordingSession(mode: .command)
-    }
-
-    private func stopCommandRecordingAndProcess() async {
-        guard appState.status == .commandRecording else { return }
-        // Single source of truth for the in-flight flag — mirrors stopRecordingAndTranscribe.
-        // Without this, every early-return below has to remember to reset it manually, and
-        // a missed reset only surfaces 10s later via the force-reset workaround.
-        defer { isProcessing = false }
-
-        let duration = recordingStartTime.map { Date().timeIntervalSince($0) } ?? 0
-        let samples = audioRecorder.stopRecording()
-
-        if duration < Constants.Audio.minimumRecordingDuration {
-            appState.status = .idle
-            appState.isCommandMode = false
-            return
-        }
-
-        appState.status = .commandTranscribing
-
-        do {
-            let language: String? = appState.autoDetectLanguage ? nil : appState.preferredLanguage
-            let result = try await transcriptionEngine.transcribe(audioSamples: samples, language: language, preferredLanguage: appState.preferredLanguage)
-
-            guard !result.text.isEmpty else {
-                appState.status = .idle
-                appState.isCommandMode = false
-                return
-            }
-
-            appState.lastCommand = result.text
-            print("[Command] Transcribed command: \(result.text)")
-
-            guard let selectedText = await TextInjector.readSelection(), !selectedText.isEmpty else {
-                print("[Command] Failed to read selection — no text selected")
-                appState.errorMessage = "No text selected — select text before using command mode"
-                appState.status = .error
-                appState.isCommandMode = false
-                scheduleErrorReset()
-                return
-            }
-            print("[Command] Selected text: \(selectedText.prefix(100))")
-
-            appState.status = .commandProcessing
-
-            guard let processor = commandProcessor else {
-                print("[Command] Command processor is nil")
-                appState.errorMessage = "Command processor not configured"
-                appState.status = .error
-                appState.isCommandMode = false
-                scheduleErrorReset()
-                return
-            }
-
-            print("[Command] Sending to LLM...")
-            let transformed = try await processor.process(command: result.text, selectedText: selectedText, parameters: appState.llmParameters)
-            print("[Command] LLM result: \(transformed.prefix(200))")
-
-            guard !transformed.isEmpty else {
-                print("[Command] LLM returned empty — skipping")
-                appState.status = .idle
-                appState.isCommandMode = false
-                return
-            }
-
-            appState.status = .commandInjecting
-            TextInjector.replaceSelection(transformed)
-            appState.lastTranscription = transformed
-            appState.addTranscription(transformed, isCommand: true)
-            appState.status = .idle
-            appState.isCommandMode = false
-        } catch {
-            appState.status = .error
-            appState.errorMessage = "Command processing failed: \(error.localizedDescription)"
-            appState.isCommandMode = false
             scheduleErrorReset()
         }
     }
@@ -358,27 +215,35 @@ final class DictationPipeline {
             appState.errorMessage = "Accessibility permission not working — if already enabled, toggle it OFF then ON in System Settings → Privacy & Security → Accessibility"
             PermissionService.openAccessibilitySettings()
             startAccessibilityPolling()
-            print("[Pipeline] WARNING: Accessibility not granted — hotkeys will not work")
+            Log.pipeline.info("WARNING: Accessibility not granted — hotkeys will not work")
         }
     }
 
     private func startAccessibilityPolling() {
         Task { @MainActor [weak self] in
-            while let self, !PermissionService.checkAccessibilityPermission() {
+            while !PermissionService.checkAccessibilityPermission() {
                 try? await Task.sleep(for: .seconds(2))
+                if self == nil { return }
             }
             guard let self else { return }
             self.appState.errorMessage = nil
         }
     }
 
+    /// Resets `status` from `.error` back to `.idle` after a short delay so the
+    /// user can press the hotkey again — but does NOT clear `errorMessage`. The
+    /// message remains visible in the menu bar until the next successful dictation
+    /// (or the next recording attempt clears it explicitly at line 126).
+    ///
+    /// Pre-audit behavior cleared both after 3s; in practice users were missing the
+    /// 3-second flash and seeing "nothing happened" as a result. Decoupling lifetimes
+    /// gives the message dwell-time without blocking retry.
     private func scheduleErrorReset() {
         Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.sleep(for: .seconds(2))
             guard let self else { return }
             if self.appState.status == .error {
                 self.appState.status = .idle
-                self.appState.errorMessage = nil
             }
         }
     }

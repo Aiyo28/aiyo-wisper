@@ -10,9 +10,6 @@ packages:
   WhisperKit:
     url: https://github.com/argmaxinc/WhisperKit.git
     from: "1.0.0"
-  LocalLLMClient:
-    url: https://github.com/tattn/LocalLLMClient.git
-    branch: main
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle.git
     from: "2.6.0"
@@ -31,9 +28,6 @@ targets:
         MACOSX_DEPLOYMENT_TARGET: "15.0"
         ARCHS: arm64
         SWIFT_STRICT_CONCURRENCY: complete
-        # Required by LocalLLMClientLlamaC which exposes C++ headers (utils.h uses <memory>)
-        SWIFT_OBJC_INTEROP_MODE: objcxx
-        OTHER_SWIFT_FLAGS: "-cxx-interoperability-mode=default"
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_IDENTITY: "Apple Development"
         DEVELOPMENT_TEAM: "8QWT6Z76LH"
@@ -50,19 +44,17 @@ targets:
           PROVISIONING_PROFILE_SPECIFIER: ""
     dependencies:
       - package: WhisperKit
-      - package: LocalLLMClient
-        product: LocalLLMClient
-      - package: LocalLLMClient
-        product: LocalLLMClientLlama
       - package: Sparkle
     info:
       path: AiyoWisper/Info.plist
       properties:
+        CFBundleShortVersionString: "1.1.1"
+        CFBundleVersion: "3"
         LSUIElement: true
         NSMicrophoneUsageDescription: "AIYO Wisper needs microphone access to capture your voice for local speech-to-text transcription. Audio is processed entirely on your device."
         NSAccessibilityUsageDescription: "AIYO Wisper needs Accessibility access to register global hotkeys and type transcribed text into other applications."
         SUFeedURL: "https://raw.githubusercontent.com/Aiyo28/aiyo-wisper/main/appcast.xml"
-        SUEnableAutomaticChecks: true
+        SUEnableAutomaticChecks: false
         SUPublicEDKey: "aRouqjBBUWqJNu0x77sltzUQ/OUHFSl9kbSTkeuVpUk="
 
   AiyoWisperTests:
