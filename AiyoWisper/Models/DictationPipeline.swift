@@ -66,7 +66,9 @@ final class DictationPipeline {
             return
         }
 
-        Log.pipeline.info("Loading Whisper model '\(modelName, privacy: .public)' from \(modelPath.path, privacy: .public)")
+        // Don't log modelPath.path — contains /Users/<username>/... which would
+        // leak PII into Console.app captures and shared diagnostic bundles.
+        Log.pipeline.info("Loading Whisper model '\(modelName, privacy: .public)'")
         let loadStart = Date()
         do {
             try await transcriptionEngine.loadModel(path: modelPath.path)

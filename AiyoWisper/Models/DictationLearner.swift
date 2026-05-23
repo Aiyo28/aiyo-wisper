@@ -203,7 +203,9 @@ final class DictationLearner {
         var focused: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focused)
         guard result == .success, let raw = focused else { return nil }
-        // swiftlint:disable:next force_cast
+        // Defensive cast — if Apple ever changes the AX bridge return type, we
+        // get nil instead of a crash; callers already handle the nil path.
+        guard CFGetTypeID(raw) == AXUIElementGetTypeID() else { return nil }
         return (raw as! AXUIElement)
     }
 
