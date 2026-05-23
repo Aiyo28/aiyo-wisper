@@ -1,31 +1,23 @@
 import Cocoa
 import os
 
-/// Tracks the dictation + command-mode modifier hotkeys (Control / Option).
+/// Tracks the dictation modifier hotkey (Control).
 ///
 /// **Threading contract:** `NSEvent` global-monitor blocks are not guaranteed to be
 /// delivered on the main thread. `handleFlagsChanged` runs on whatever thread the
-/// system invokes the block on. All access to `isHotkeyPressed` /
-/// `isCommandHotkeyPressed` goes through `stateLock` so two near-simultaneous events
-/// can't observe inconsistent state. The `on*` closures are `@Sendable` and dispatch
-/// to `@MainActor` internally, so it's safe to invoke them from the lock-protected
-/// section.
+/// system invokes the block on. All access to `_isHotkeyPressed` goes through
+/// `stateLock` so two near-simultaneous events can't observe inconsistent state.
+/// The `on*` closures are `@Sendable` and dispatch to `@MainActor` internally, so
+/// it's safe to invoke them from the lock-protected section.
 @Observable
 final class HotkeyService: @unchecked Sendable {
-    /// State is only ever read inside `withStateLock` — do not read directly.
     private var _isHotkeyPressed = false
-    private var _isCommandHotkeyPressed = false
     private let stateLock = OSAllocatedUnfairLock()
 
     @ObservationIgnored
     var onKeyDown: (@Sendable () -> Void)?
     @ObservationIgnored
     var onKeyUp: (@Sendable () -> Void)?
-
-    @ObservationIgnored
-    var onCommandKeyDown: (@Sendable () -> Void)?
-    @ObservationIgnored
-    var onCommandKeyUp: (@Sendable () -> Void)?
 
     @ObservationIgnored
     private var globalMonitor: Any?
@@ -41,7 +33,7 @@ final class HotkeyService: @unchecked Sendable {
             self?.handleFlagsChanged(event)
             return event
         }
-        print("[Hotkey] Service started — global monitor: \(globalMonitor != nil), local monitor: \(localMonitor != nil)")
+        Log.hotkey.info("Service started — global monitor: \(self.globalMonitor != nil), local monitor: \(self.localMonitor != nil)")
     }
 
     func stop() {
@@ -53,10 +45,7 @@ final class HotkeyService: @unchecked Sendable {
             NSEvent.removeMonitor(localMonitor)
             self.localMonitor = nil
         }
-        stateLock.withLock {
-            _isHotkeyPressed = false
-            _isCommandHotkeyPressed = false
-        }
+        stateLock.withLock { _isHotkeyPressed = false }
     }
 
     private func handleFlagsChanged(_ event: NSEvent) {
@@ -65,11 +54,7 @@ final class HotkeyService: @unchecked Sendable {
         let commandPressed = event.modifierFlags.contains(.command)
         let shiftPressed = event.modifierFlags.contains(.shift)
 
-        // Dictation: Control only (no other modifiers) to start.
-        // Compute the desired transition under the lock so concurrent events can't
-        // both fire `onKeyDown` on the same press, then invoke the closure outside
-        // the lock (closures dispatch to @MainActor and we don't want to hold the
-        // lock across that hop).
+        // Dictation: Control only (no other modifiers).
         let dictationTransition: HotkeyTransition = stateLock.withLock {
             if controlPressed && !optionPressed && !commandPressed && !shiftPressed {
                 if !_isHotkeyPressed {
@@ -84,31 +69,13 @@ final class HotkeyService: @unchecked Sendable {
         }
         switch dictationTransition {
         case .keyDown:
-            print("[Hotkey] Control key down detected")
+            Log.hotkey.info("Control key down detected")
             onKeyDown?()
         case .keyUp:
-            print("[Hotkey] Control key up detected (controlPressed: \(controlPressed))")
+            Log.hotkey.info("Control key up detected (controlPressed: \(controlPressed))")
             onKeyUp?()
         case .none:
             break
-        }
-
-        let commandTransition: HotkeyTransition = stateLock.withLock {
-            if optionPressed && !controlPressed && !commandPressed && !shiftPressed {
-                if !_isCommandHotkeyPressed {
-                    _isCommandHotkeyPressed = true
-                    return .keyDown
-                }
-            } else if _isCommandHotkeyPressed {
-                _isCommandHotkeyPressed = false
-                return .keyUp
-            }
-            return .none
-        }
-        switch commandTransition {
-        case .keyDown: onCommandKeyDown?()
-        case .keyUp: onCommandKeyUp?()
-        case .none: break
         }
     }
 

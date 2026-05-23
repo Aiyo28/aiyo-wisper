@@ -4,10 +4,6 @@ enum Constants {
     static let appName = "AIYO Wisper"
     static let bundleId = "com.aiyo.wisper"
 
-    enum Hotkey {
-        static let defaultKeyCode: UInt16 = 63 // fn key
-    }
-
     enum Audio {
         static let sampleRate: Double = 16_000
         static let channels: Int = 1
@@ -22,16 +18,6 @@ enum Constants {
             let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
             return appSupport.appendingPathComponent(supportDirectory, isDirectory: true)
         }
-
-        static let available: [(name: String, size: String, description: String)] = [
-            ("tiny", "75 MB", "Fastest, least accurate"),
-            ("base", "150 MB", "Good balance for quick tasks"),
-            ("small", "500 MB", "Better accuracy, moderate speed"),
-            ("medium", "1.5 GB", "High accuracy, slower"),
-            ("large-v3", "3 GB", "Best accuracy, slowest"),
-            ("large-v3-turbo", "~600 MB", "Near large-v3 accuracy, 6x faster"),
-            ("distil-large-v3", "~600 MB", "Near large-v3 accuracy, English only"),
-        ]
     }
 
     enum UserDefaultsKeys {
@@ -40,12 +26,7 @@ enum Constants {
         static let preferredLanguage = "preferredLanguage"
         static let autoDetectLanguage = "autoDetectLanguage"
         static let minimalFormattingForEditors = "minimalFormattingForEditors"
-        static let commandModeEnabled = "commandModeEnabled"
         static let characterByCharacterMode = "characterByCharacterMode"
-        static let llmTemperature = "llmTemperature"
-        static let llmMaxTokens = "llmMaxTokens"
-        static let llmPreset = "llmPreset"
-        static let useLLMCleanup = "useLLMCleanup"
     }
 
     enum TextInjection {
@@ -94,50 +75,6 @@ enum Constants {
         static let smallModels: Set<String> = ["tiny"] // Models that need extra punctuation polish
     }
 
-    enum LLM {
-        static let defaultTemperature: Double = 0.5
-        static let defaultMaxTokens: Int = 1024
-        static let defaultPreset: String = "balanced"
-        static let cleanupTimeout: TimeInterval = 5
-
-        static let cleanupSystemPrompt = """
-            /no_think
-            Clean up this speech transcription. Remove filler words, self-corrections, \
-            and disfluencies. Add proper punctuation and capitalization. \
-            Output only the cleaned text, nothing else.
-            """
-
-        static let commandSystemPrompt = """
-            /no_think
-            You are a text transformation assistant. You receive selected text and a voice command. \
-            Apply the command to transform the text. Output ONLY the transformed text. \
-            Do not add explanations, markdown formatting, or quotes around the output. \
-            Preserve the original formatting style unless the command requires changing it.
-            """
-
-        // Verified live on HuggingFace 2026-05-20.
-        // LocalLLMClient downloads via HF model ID + filename glob (LLMSession.DownloadModel.llama).
-        static let defaultModelRepo = "unsloth/Qwen3-0.6B-GGUF"
-        static let defaultModelFile = "Qwen3-0.6B-Q4_K_M.gguf"
-        static let defaultModelName = "Qwen3 0.6B"
-        static let defaultModelSize = "~400 MB"
-
-        // Q4_K_M of Qwen3-0.6B is 378 MB on HF; anything under 300 MB indicates a partial/corrupt download.
-        static let minimumModelFileSize: Int64 = 300 * 1024 * 1024
-
-        // GGUF file magic: first 4 bytes are "GGUF" (0x47 0x47 0x55 0x46).
-        static let ggufMagic: [UInt8] = [0x47, 0x47, 0x55, 0x46]
-
-        static var llmModelsDirectory: URL {
-            let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            return appSupport.appendingPathComponent("AiyoWisper/LLMModels", isDirectory: true)
-        }
-
-        static var defaultModelPath: URL {
-            llmModelsDirectory.appendingPathComponent(defaultModelFile)
-        }
-    }
-
     enum History {
         static let maxPersistentEntries = 6
 
@@ -158,11 +95,6 @@ enum Constants {
         /// and start fixing it; short enough that we don't drift across user actions or
         /// invite focus changes that would defeat the AX-role safety gates.
         static let observationDelay: TimeInterval = 12
-    }
-
-    enum CommandMode {
-        static let clipboardReadDelay: UInt32 = 100_000 // microseconds
-        static let clipboardRestoreDelay: TimeInterval = 0.5
     }
 
     enum Language {

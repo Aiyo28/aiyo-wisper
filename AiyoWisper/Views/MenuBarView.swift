@@ -27,11 +27,6 @@ struct MenuBarView: View {
 
                     ForEach(appState.transcriptionHistory.prefix(Constants.History.maxPersistentEntries)) { entry in
                         HStack(alignment: .top, spacing: 6) {
-                            if entry.isCommand {
-                                Image(systemName: "command")
-                                    .font(.caption2)
-                                    .foregroundStyle(.purple)
-                            }
                             Text(entry.text)
                                 .font(.callout)
                                 .lineLimit(2)
@@ -152,13 +147,8 @@ struct MenuBarView: View {
         case .idle: appState.isModelLoaded ? .green : .orange
         case .recording: .red
         case .transcribing: .orange
-        case .cleaning: .cyan
         case .injecting: .blue
         case .error: .red
-        case .commandRecording: .purple
-        case .commandTranscribing: .purple
-        case .commandProcessing: .purple
-        case .commandInjecting: .purple
         }
     }
 
@@ -167,13 +157,8 @@ struct MenuBarView: View {
         case .idle: appState.isModelLoaded ? "Ready" : "Model Not Ready"
         case .recording: "Recording..."
         case .transcribing: "Transcribing..."
-        case .cleaning: "Cleaning up..."
         case .injecting: "Injecting text..."
         case .error: "Error"
-        case .commandRecording: "Command Mode..."
-        case .commandTranscribing: "Transcribing command..."
-        case .commandProcessing: "Processing..."
-        case .commandInjecting: "Injecting..."
         }
     }
 }

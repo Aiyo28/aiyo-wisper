@@ -265,7 +265,7 @@ final class DictationLearner {
             let data = try Data(contentsOf: storageURL)
             suggestions = try JSONDecoder().decode([CorrectionSuggestion].self, from: data)
         } catch {
-            print("[DictationLearner] Failed to load: \(error)")
+            Log.learner.error("Failed to load: \(error)")
         }
     }
 
@@ -276,7 +276,7 @@ final class DictationLearner {
             let data = try JSONEncoder().encode(suggestions)
             try data.write(to: storageURL, options: .atomic)
         } catch {
-            print("[DictationLearner] Failed to save: \(error)")
+            Log.learner.error("Failed to save: \(error)")
         }
     }
 }
