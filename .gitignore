@@ -2,6 +2,9 @@
 build/
 DerivedData/
 *.profraw
+
+# Claude Code local config
+.claude/
 *.pbxuser
 
 # Local planning docs — live in Knowledge OS vault, never in OSS repo
