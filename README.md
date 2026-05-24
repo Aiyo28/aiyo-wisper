@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="AIYO Wisper — Voice-to-text with AI command mode for macOS" width="100%">
+  <img src="assets/banner.svg" alt="AIYO Wisper — Local voice-to-text for macOS" width="100%">
 </p>
 
-Hold a key, speak, text appears at your cursor. Select text and speak a command to transform it. No cloud. No subscription. Everything runs on your Mac.
+Hold a key, speak, text appears at your cursor. No cloud. No subscription. Everything runs on your Mac.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -14,16 +14,7 @@ Hold a key, speak, text appears at your cursor. Select text and speak a command 
 
 **Dictation** — Hold Control, speak, release. Text appears wherever your cursor is. In any app.
 
-**AI Cleanup** — A local AI model removes filler words ("um", "like"), fixes self-corrections ("no wait, I mean..."), and adds punctuation. Automatically.
-
-**Command Mode** — Select text, hold Option, speak a command:
-- "make this more formal"
-- "fix the grammar"
-- "translate to Russian"
-- "rewrite as bullet points"
-- "make this shorter"
-
-The selected text gets replaced with the transformed version.
+**Smart Formatting** — Automatic punctuation and capitalization on your dictated text, with light cleanup of false starts. Rule-based and instant — no AI model required.
 
 **Voice Shortcuts** — Create trigger phrases that expand during dictation. Say "my email" and it types your full email address.
 
@@ -33,9 +24,7 @@ The selected text gets replaced with the transformed version.
 |---|:---:|:---:|:---:|
 | Price | **Free** | $10/mo | $15/mo |
 | Local processing | Yes | Cloud | Cloud |
-| Command mode | Yes | — | — |
 | Voice shortcuts | Yes | — | — |
-| AI text cleanup | Yes | Yes | Yes |
 | Open source | MIT | No | No |
 | Privacy | No data leaves Mac | Audio sent to cloud | Audio sent to cloud |
 
@@ -55,16 +44,14 @@ The selected text gets replaced with the transformed version.
 
 | Model | Size | Best for |
 |-------|------|----------|
-| **Small** (default) | 216 MB | Best balance of speed and quality. All languages. |
-| Turbo | 632 MB | Highest accuracy. All languages. |
-| English Turbo | 600 MB | Fastest and most accurate for English only. |
+| **Turbo** (recommended) | 632 MB | Highest accuracy. All languages. |
+| Small | 216 MB | Balanced multilingual option. Use Turbo for higher accuracy. |
+| English Turbo | 600 MB | Fastest for English. **Will not transcribe other languages.** |
 | Lightweight | 77 MB | Smallest download. Quick notes. All languages. |
-
-AI text cleanup uses **Qwen3 0.6B** (397 MB) — downloaded separately in Settings → Formatting.
 
 ## Privacy
 
-**No audio or text ever leaves your device.** All speech recognition (WhisperKit) and AI cleanup (Qwen3 via llama.cpp) run entirely on your Mac using the Neural Engine and GPU. No cloud APIs, no telemetry, no accounts.
+**No audio or text ever leaves your device.** All speech recognition (WhisperKit) runs entirely on your Mac using the Neural Engine and GPU. No cloud APIs, no telemetry, no accounts.
 
 ## Build from Source
 
@@ -84,7 +71,6 @@ open AiyoWisper.xcodeproj
 | Language | Swift 6 |
 | UI | SwiftUI |
 | Speech-to-text | [WhisperKit](https://github.com/argmaxinc/WhisperKit) (CoreML) |
-| AI cleanup | [LLM.swift](https://github.com/eastriverlee/LLM.swift) + Qwen3 0.6B |
 | Text injection | CGEvent keyboard simulation |
 | Auto-update | [Sparkle](https://sparkle-project.org/) |
 

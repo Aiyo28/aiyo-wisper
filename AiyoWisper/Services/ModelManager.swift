@@ -24,7 +24,7 @@ final class ModelManager {
                   englishOnly: false, isDownloaded: false),
         ModelInfo(id: "distil-large-v3", name: "English Turbo", variant: "distil-whisper_distil-large-v3_turbo_600MB",
                   size: "600 MB",
-                  description: "Fastest and most accurate for English only.",
+                  description: "Fastest for English. Will not transcribe other languages.",
                   englishOnly: true, isDownloaded: false),
         ModelInfo(id: "tiny", name: "Lightweight", variant: "openai_whisper-tiny",
                   size: "77 MB",
