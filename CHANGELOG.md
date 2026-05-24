@@ -19,6 +19,8 @@ Major release: AI text cleanup feature removed. Whisper rejection policy rewritt
 - **Empty transcript no longer surfaces a red error banner.** When Whisper returns nothing (silence, decode rejection, leaked-only structural tokens), the pipeline now returns silently to `.idle`. The hotkey is immediately available for retry. Failure is still logged via `os.Logger` for diagnosis.
 - **Auto-update is opt-in.** `SUEnableAutomaticChecks` defaults to `false`; check the toggle in Settings → Updates to enable. "Check Now" button always works.
 - **Recommended model is now Turbo (large-v3-turbo, 632 MB).** Without the AI cleanup polish, raw Whisper accuracy matters more — Turbo is the right default for most users. The Small model (216 MB) is kept in the catalog as the balanced multilingual option, re-labeled accordingly.
+- **English Turbo warning generalized.** The English-only model's warning previously named Russian specifically ("won't work with Russian"); it now reads "will not transcribe other languages, and won't work with auto-detect" — accurate for any non-English input. Model description updated to match.
+- **README scrubbed of removed features.** Dropped the AI Cleanup, Command Mode, and Qwen3 sections (and the competitive-table rows that referenced them) now that the LLM stack is gone, so the public docs match the shipped app.
 - **Print statements replaced with `os.Logger`** across pipeline, transcribe, hotkey, learner, dictionary, and appstate. Diagnostics surface in Console.app under `subsystem:com.aiyo.wisper`, regardless of how the app was launched.
 
 ### Added

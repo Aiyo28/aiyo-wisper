@@ -533,7 +533,7 @@ private struct ModelRow: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                 if showLanguageWarning {
-                    Text("English only — won't work with Russian or auto-detect")
+                    Text("English only — will not transcribe other languages, and won't work with auto-detect")
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }
