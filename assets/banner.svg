@@ -59,7 +59,7 @@
 
   <!-- Tagline -->
   <text x="600" y="258" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif" font-size="20" fill="#a0a0b0" letter-spacing="0.5">
-    Voice-to-text with AI command mode for macOS
+    Local voice-to-text for macOS
   </text>
 
   <!-- Feature pills -->
@@ -68,9 +68,9 @@
     <rect x="-295" y="-16" width="110" height="32" rx="16" fill="#3b82f6" fill-opacity="0.15" stroke="#3b82f6" stroke-opacity="0.3" stroke-width="1"/>
     <text x="-240" y="5" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" fill="#7db4fc" font-weight="500">100% Local</text>
 
-    <!-- Command Mode -->
+    <!-- Voice Shortcuts -->
     <rect x="-155" y="-16" width="140" height="32" rx="16" fill="#8b5cf6" fill-opacity="0.15" stroke="#8b5cf6" stroke-opacity="0.3" stroke-width="1"/>
-    <text x="-85" y="5" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" fill="#b89afc" font-weight="500">Command Mode</text>
+    <text x="-85" y="5" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" fill="#b89afc" font-weight="500">Voice Shortcuts</text>
 
     <!-- Free -->
     <rect x="15" y="-16" width="80" height="32" rx="16" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-opacity="0.3" stroke-width="1"/>
