@@ -5,10 +5,17 @@ import Foundation
 final class DictationPipeline {
     private let appState: AppState
     private let audioRecorder = AudioRecorder()
-    private let transcriptionEngine = TranscriptionEngine()
+    private let whisperEngine = TranscriptionEngine()
+    private let appleEngine = AppleSpeechEngine()
     private let hotkeyService = HotkeyService()
     private let modelManager: ModelManager
     private let smartFormatter = SmartFormatter()
+    private let aiFormatter = AIFormatter()
+
+    /// The backend the pipeline currently transcribes with, per the user's setting.
+    private var activeEngine: TranscriptionProviding {
+        appState.transcriptionEngine == .apple ? appleEngine : whisperEngine
+    }
     private let shortcutManager: ShortcutManager
     private let dictionaryManager: DictionaryManager
     private let learner: DictationLearner
@@ -46,7 +53,7 @@ final class DictationPipeline {
         }
 
         Task {
-            await loadSelectedModel()
+            await prepareEngine()
             await ensurePermissions()
             hotkeyService.start()
             Log.pipeline.info("Started — model loaded: \(self.appState.isModelLoaded, privacy: .public), accessibility: \(PermissionService.checkAccessibilityPermission(), privacy: .public)")
@@ -57,12 +64,67 @@ final class DictationPipeline {
         hotkeyService.stop()
     }
 
-    func loadSelectedModel() async {
+    /// Prepares whichever transcription backend the user has selected, unloading the
+    /// other to respect the < 50 MB idle-memory budget. Also refreshes the runtime flag
+    /// for on-device AI formatting availability. Call after `start()` and whenever the
+    /// engine or language setting changes.
+    func prepareEngine() async {
+        appState.aiFormattingAvailable = AIFormatter.isAvailable
+
+        switch appState.transcriptionEngine {
+        case .apple:
+            whisperEngine.unload()
+            await prepareAppleEngine()
+        case .whisperKit:
+            appleEngine.unload()
+            await loadWhisperModel()
+        }
+    }
+
+    /// Back-compat alias — external call sites (Settings, onboarding) still say "load model".
+    func loadSelectedModel() async { await prepareEngine() }
+
+    private func prepareAppleEngine() async {
+        // Refresh which of our languages Apple can serve right now. This is dynamic: when a
+        // future macOS adds Russian (etc.), it appears here — and in the pickers and in
+        // Auto — with no code change.
+        let candidates = Constants.Language.available.map(\.code)
+        let supported = await AppleSpeechEngine.supportedLanguageCodes(among: candidates)
+        let effective = supported.isEmpty ? [Constants.Language.defaultLanguage] : supported
+        appState.appleSupportedLanguages = effective
+
+        // If the user had pinned a language Apple can no longer serve, fall back to Auto so
+        // dictation keeps working (Auto spans exactly the supported set).
+        if !appState.autoDetectLanguage && !effective.contains(appState.preferredLanguage) {
+            appState.autoDetectLanguage = true
+        }
+
+        // Auto → the full supported set (one language = single pass, no dual-pass cost).
+        // Pinned → that one language. Either way, only supported codes reach the engine.
+        let codes = appState.autoDetectLanguage ? effective : [appState.preferredLanguage]
+        Log.pipeline.info("Preparing Apple speech engine (\(codes.joined(separator: ","), privacy: .public))")
+        do {
+            try await appleEngine.prepare(languageCodes: codes)
+            appState.isModelLoaded = true
+            appState.errorMessage = nil
+        } catch {
+            appState.isModelLoaded = false
+            let names = codes.map(languageName).joined(separator: ", ")
+            appState.errorMessage = "Apple's on-device engine doesn't support \(names) on this macOS. Switch to WhisperKit in Settings → Transcription."
+            Log.pipeline.error("Apple speech prepare FAILED: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func languageName(_ code: String) -> String {
+        Constants.Language.available.first { $0.code == code }?.name ?? code.uppercased()
+    }
+
+    private func loadWhisperModel() async {
         let modelName = appState.selectedModel
         guard let modelPath = modelManager.modelPath(for: modelName) else {
             appState.isModelLoaded = false
             appState.errorMessage = "Model \"\(modelName)\" not downloaded — open Settings → Transcription to download"
-            Log.pipeline.info("loadSelectedModel: no on-disk path for '\(modelName, privacy: .public)'")
+            Log.pipeline.info("loadWhisperModel: no on-disk path for '\(modelName, privacy: .public)'")
             return
         }
 
@@ -71,7 +133,7 @@ final class DictationPipeline {
         Log.pipeline.info("Loading Whisper model '\(modelName, privacy: .public)'")
         let loadStart = Date()
         do {
-            try await transcriptionEngine.loadModel(path: modelPath.path)
+            try await whisperEngine.loadModel(path: modelPath.path)
             let elapsed = Date().timeIntervalSince(loadStart)
             appState.isModelLoaded = true
             appState.errorMessage = nil
@@ -106,10 +168,10 @@ final class DictationPipeline {
         defer { if appState.status != .recording { isProcessing = false } }
 
         guard appState.isModelLoaded else {
-            if modelManager.modelPath(for: appState.selectedModel) == nil {
+            if appState.transcriptionEngine == .whisperKit, modelManager.modelPath(for: appState.selectedModel) == nil {
                 appState.errorMessage = "Model \"\(appState.selectedModel)\" not downloaded — open Settings → Transcription to download"
             } else {
-                appState.errorMessage = "Model is still loading, please wait..."
+                appState.errorMessage = "Speech engine is still loading, please wait..."
             }
             return
         }
@@ -154,10 +216,10 @@ final class DictationPipeline {
 
         do {
             let language: String? = appState.autoDetectLanguage ? nil : appState.preferredLanguage
-            let result = try await transcriptionEngine.transcribe(
-                audioSamples: samples,
+            let result = try await activeEngine.transcribe(
+                samples: samples,
                 language: language,
-                vocabularyWords: dictionaryManager.vocabularyWords
+                vocabulary: dictionaryManager.vocabularyWords
             )
 
             appState.detectedLanguage = result.language
@@ -175,7 +237,16 @@ final class DictationPipeline {
             }
 
             let minimalMode = SmartFormatter.shouldUseMinimalMode(setting: appState.minimalFormattingForEditors)
-            let formatted = smartFormatter.format(result.text, modelId: appState.selectedModel, minimalMode: minimalMode)
+            // Prefer the on-device LLM when available and enabled; fall back to the
+            // rule-based formatter whenever it's off, unavailable, or declines the input.
+            let formatted: String
+            if appState.useAIFormatting,
+               appState.aiFormattingAvailable,
+               let aiFormatted = await aiFormatter.format(result.text, minimalMode: minimalMode) {
+                formatted = aiFormatted
+            } else {
+                formatted = smartFormatter.format(result.text, modelId: appState.selectedModel, minimalMode: minimalMode)
+            }
 
             guard !formatted.isEmpty else {
                 // Same silent-fail policy: the regex passes nuked the transcript to

@@ -2,7 +2,7 @@ name: AiyoWisper
 options:
   bundleIdPrefix: com.aiyo
   deploymentTarget:
-    macOS: "15.0"
+    macOS: "26.0"
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
@@ -25,7 +25,7 @@ targets:
     settings:
       base:
         SWIFT_VERSION: "6.0"
-        MACOSX_DEPLOYMENT_TARGET: "15.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
         ARCHS: arm64
         SWIFT_STRICT_CONCURRENCY: complete
         ENABLE_HARDENED_RUNTIME: YES
@@ -48,11 +48,12 @@ targets:
     info:
       path: AiyoWisper/Info.plist
       properties:
-        CFBundleShortVersionString: "1.1.1"
-        CFBundleVersion: "3"
+        CFBundleShortVersionString: "1.2.4"
+        CFBundleVersion: "8"
         LSUIElement: true
         NSMicrophoneUsageDescription: "AIYO Wisper needs microphone access to capture your voice for local speech-to-text transcription. Audio is processed entirely on your device."
         NSAccessibilityUsageDescription: "AIYO Wisper needs Accessibility access to register global hotkeys and type transcribed text into other applications."
+        NSSpeechRecognitionUsageDescription: "AIYO Wisper uses Apple's on-device speech recognition to transcribe your voice locally. No audio leaves your Mac."
         SUFeedURL: "https://raw.githubusercontent.com/Aiyo28/aiyo-wisper/master/appcast.xml"
         SUEnableAutomaticChecks: false
         SUPublicEDKey: "aRouqjBBUWqJNu0x77sltzUQ/OUHFSl9kbSTkeuVpUk="
@@ -65,7 +66,7 @@ targets:
     settings:
       base:
         SWIFT_VERSION: "6.0"
-        MACOSX_DEPLOYMENT_TARGET: "15.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
         ARCHS: arm64
         SWIFT_STRICT_CONCURRENCY: complete
         GENERATE_INFOPLIST_FILE: YES

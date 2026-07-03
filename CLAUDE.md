@@ -2,12 +2,13 @@
 
 ## Context
 
-macOS menu bar voice-to-text app. Hold hotkey → speak → text appears at cursor. Local-only via WhisperKit.
+macOS menu bar voice-to-text app. Hold hotkey → speak → text appears at cursor. Local-only, on-device.
 
 | Component | Stack | Constraints |
 |-----------|-------|-------------|
-| App | Swift 6, SwiftUI, macOS 15+ | ARM64 only. No App Sandbox (Accessibility API). |
-| STT | WhisperKit (CoreML/Neural Engine) | Models in `~/Library/Application Support/AiyoWisper/Models/` |
+| App | Swift 6, SwiftUI (Liquid Glass), macOS 26+ | ARM64 only. No App Sandbox (Accessibility API). |
+| STT | Apple `SpeechAnalyzer` (default) · WhisperKit (optional) | Both conform to `TranscriptionProviding`. Apple = system-managed locale assets; WhisperKit models in `~/Library/Application Support/AiyoWisper/Models/`. |
+| Formatting | Apple Foundation Models (on-device LLM) → rule-based fallback | `AIFormatter`; always fails soft to `SmartFormatter`. |
 | Text inject | CGEvent `keyboardSetUnicodeString` | Clipboard fallback for terminals |
 | Build | XcodeGen (`project.yml`) | Regenerate: `xcodegen generate` |
 | Distribution | DMG / GitHub releases | No App Store (Accessibility prevents it) |
@@ -50,8 +51,12 @@ MASTERPLAN.md, TODO.md, NEXT.md, session logs, and decision docs live in Knowled
 6. **Clipboard guard:** `TextInjector` falls back to clipboard paste for terminals. Must restore original clipboard.
 7. **`@MainActor` isolation:** Views + any UI-touching code. `WhisperManager` is `@MainActor`.
 8. **Model IDs:** WhisperKit model names must match HuggingFace repo naming exactly.
-9. **Audio format:** 16kHz mono Float32 — WhisperKit requires this exact format.
+9. **Audio format:** 16kHz mono Float32 — `AudioRecorder` output. WhisperKit consumes it directly; `AppleSpeechEngine` writes a temp WAV and lets `SpeechAnalyzer.analyzeSequence(from:)` convert internally.
 10. **MenuBarExtra lifecycle:** No `WindowGroup` — app lifecycle via `MenuBarExtra` only.
+11. **Apple Speech is locale-pinned.** `SpeechTranscriber(locale:)` transcribes ONE language — this is the fix for language bleed, not a limitation to work around. "Auto-detect" applies to WhisperKit only. Changing preferred language must re-call `prepareEngine()`.
+12. **`AssetInventory` reserve limit.** The Apple engine downloads + reserves a locale on first use. `reservedLocales`/`supportedLocales`/`installedLocales` are `async` getters; `reservedLocales` too.
+13. **Foundation Models is optional at runtime.** `AIFormatter.isAvailable` gates on Apple Intelligence being enabled + eligible hardware. Never assume it's present — the rule-based path must always work.
+14. **New-API signatures drift beta→GA.** Verify against the installed SDK's `.swiftinterface` (e.g. `SpeechTranscriber.Preset.transcription`, not the beta `.offlineTranscription`) rather than trusting WWDC-era sample code.
 
 ## Build & Run
 
@@ -79,5 +84,6 @@ Same error 3x → **STOP**. Verify with user. Write happy path only (<20 lines).
 
 ## Open Decisions
 
-- Smart formatting engine: rule-based NLP vs. small local LLM (Phase 2)
-- Command mode LLM selection (Phase 3)
+- ~~Smart formatting engine: rule-based NLP vs. small local LLM~~ → **Resolved (v1.2.0):** Apple Foundation Models on-device LLM, with rule-based fallback.
+- **Command mode** (e.g. "make this a bullet list") — not yet built. Now cleanly doable via `AIFormatter` + a `@Generable` command schema on Foundation Models. Candidate for v1.3.
+- **Streaming transcription** — v1.2 uses batch (transcribe-on-release). `SpeechAnalyzer` also supports live streaming for near-zero post-release latency; candidate enhancement.

@@ -1,27 +1,19 @@
 import Foundation
 import WhisperKit
 
-struct TranscriptionResult {
-    let text: String
-    let language: String
-    /// Number of characters removed by the special-token strip pass. When this is
-    /// non-zero but `text` is empty, Whisper returned only structural tokens
-    /// (`<|startoftranscript|><|XX|>...<|endoftext|>`) with no real content —
-    /// distinct from genuine silence. The pipeline uses this to surface a more
-    /// accurate error message.
-    let strippedCount: Int
-}
-
-/// Wraps WhisperKit for CoreML-backed transcription.
+/// Wraps WhisperKit for CoreML-backed transcription. Opt-in fallback backend as of
+/// v1.2.0 — the default is `AppleSpeechEngine`.
 ///
 /// **Threading contract:** `@unchecked Sendable` because WhisperKit's own types aren't
 /// `Sendable` under Swift 6 strict concurrency. The pipeline calls `loadModel` and
 /// `transcribe` exclusively from `@MainActor` with `await`, so mutation of
 /// `whisperKit` and `isModelLoaded` is naturally serialized. If a future caller
 /// crosses that boundary (e.g. background transcription), convert this to an `actor`.
-final class TranscriptionEngine: @unchecked Sendable {
+final class TranscriptionEngine: TranscriptionProviding, @unchecked Sendable {
     private var whisperKit: WhisperKit?
     private(set) var isModelLoaded = false
+
+    var isReady: Bool { isModelLoaded }
 
     /// Whisper's structural / control tokens. WhisperKit's tokenizer should strip these
     /// when detokenizing segments, but in v1.0 some decoder fallback paths return the
@@ -40,7 +32,7 @@ final class TranscriptionEngine: @unchecked Sendable {
         isModelLoaded = true
     }
 
-    func transcribe(audioSamples: [Float], language: String?, vocabularyWords: [String] = []) async throws -> TranscriptionResult {
+    func transcribe(samples audioSamples: [Float], language: String?, vocabulary vocabularyWords: [String] = []) async throws -> TranscriptionResult {
         guard let whisperKit else {
             throw TranscriptionError.modelNotLoaded
         }
@@ -125,7 +117,7 @@ final class TranscriptionEngine: @unchecked Sendable {
         return TranscriptionResult(text: text, language: detectedLanguage, strippedCount: strippedCount)
     }
 
-    func unloadModel() {
+    func unload() {
         whisperKit = nil
         isModelLoaded = false
     }
@@ -141,16 +133,5 @@ final class TranscriptionEngine: @unchecked Sendable {
         return stripped
             .replacingOccurrences(of: "  +", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-}
-
-enum TranscriptionError: LocalizedError {
-    case modelNotLoaded
-
-    var errorDescription: String? {
-        switch self {
-        case .modelNotLoaded:
-            return "No transcription model is loaded"
-        }
     }
 }

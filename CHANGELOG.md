@@ -4,6 +4,71 @@ All notable changes to AIYO Wisper.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [SemVer](https://semver.org/).
 
+## [1.2.4] — 2026-07-03
+
+### Changed
+
+- **Language options are now dynamic per engine.** The Apple engine offers only the languages it can actually serve on this OS (queried live from `SpeechTranscriber.supportedLocales`) — English today — and **the list expands automatically as macOS adds locales** (Russian will appear the moment Apple ships it, no update needed). WhisperKit keeps offering everything (it's multilingual). `AppState.appleSupportedLanguages` drives both the menu-bar and Settings pickers.
+- **Auto now spans exactly the supported set.** With only English supported, Auto is a single fast pass (no dual-pass cost); it becomes multi-pass automatically once a second language is available.
+- **Pinned-but-unavailable language falls back to Auto** instead of erroring, so switching engines or OS versions never leaves the app stuck.
+
+## [1.2.3] — 2026-07-03
+
+### Fixed
+
+- **Selecting a language Apple doesn't support no longer breaks the whole engine.** `AppleSpeechEngine.prepare` now skips unsupported locales and continues with the rest, instead of throwing on the first one — so Auto (en + ru) keeps English working even though Russian is unavailable, rather than failing outright. Only when *every* requested language is unsupported does it error and route to WhisperKit.
+- **Accurate messaging.** The setup error no longer implies an OS-settings fix; it correctly states the language is absent from Apple's on-device catalog on this macOS and points to the WhisperKit engine.
+
+### Notes
+
+- **Verified on this Mac (macOS 27 beta): Apple's `SpeechTranscriber` supports 45 locales — English ×9, German, Spanish, French, Italian, Portuguese, Chinese, Japanese, Korean, Hindi + Indic languages, `mul-IN` — but NOT Russian.** For Russian (and EN↔RU bilingual use), the **WhisperKit engine** is the path — its multilingual models include Russian. Apple engine = best for English; WhisperKit = the bilingual option until Apple ships `ru`.
+
+## [1.2.2] — 2026-07-03
+
+### Added
+
+- **Automatic EN↔RU language detection for the Apple engine.** Set Language → Auto (menu bar or Settings → Formatting) and each clip is transcribed once per configured language; the pass with the highest average acoustic confidence (`SpeechAttributes.transcriptionConfidence`) wins. Apple's API has no spoken-language detector and EN/RU differ only by script — so confidence is the honest signal. NaturalLanguage (`NLLanguageRecognizer`) is a fallback when confidence doesn't populate. Fixes Russian speech being force-decoded as English/French gibberish. (`AppleSpeechEngine`)
+- **"Auto" option in the menu-bar language picker.**
+
+### Notes
+
+- Auto mode ~doubles per-utterance compute (one pass per language) — opt-in; pin a single language for maximum speed. Best-effort, not perfect; the manual toggle remains the reliable path.
+
+## [1.2.1] — 2026-07-03
+
+Accuracy pass for the Apple engine, aimed at bilingual/technical dictation.
+
+### Added
+
+- **Custom vocabulary biasing for the Apple engine.** The user's dictionary terms (`DictionaryManager.vocabularyWords`, grown automatically by `DictationLearner` from post-dictation edits) are now fed to `SpeechAnalyzer` as `AnalysisContext.contextualStrings` before each utterance, so names, jargon, and domain terms transcribe correctly instead of being guessed as common words. Capped at 100 terms. Previously the Apple engine ignored the vocabulary entirely. (`AppleSpeechEngine`)
+- **Menu-bar language toggle.** The menu bar now has an inline language picker (EN/RU) that pins the transcriber's locale and re-prepares the engine on the spot — no Settings trip for a bilingual user switching languages.
+
+### Notes
+
+- **Multilingual auto-detect deferred.** Apple's `SpeechTranscriber` is locale-pinned on the macOS 26.5 SDK — there's no auto-detect surface — so the language toggle is the answer until the Xcode 27 SDK is installable. Tracked in `CLAUDE.md` → Open Decisions.
+
+## [1.2.0] — 2026-07-02
+
+Native macOS 26 rebuild. AIYO Wisper now uses Apple's on-device speech and language models as its defaults, restoring AI text cleanup — this time without a fragile third-party LLM stack. Minimum OS is now macOS 26.0 (Tahoe).
+
+### Added
+
+- **Apple `SpeechAnalyzer` / `SpeechTranscriber` engine (new default).** On-device speech recognition with no app-managed model download — the locale model is system-provided and shared. The transcriber is pinned to your chosen language, which structurally fixes the WhisperKit language-mixing bug (English speech no longer picks up stray Chinese/other-language characters). Lower latency, tuned for the Neural Engine. Locale assets install and reserve automatically on first use via `AssetInventory`. (`AppleSpeechEngine`)
+- **AI Formatting via Apple Foundation Models.** Transcripts are cleaned up by the on-device system LLM — punctuation, capitalization, filler and false-start removal — running entirely on your Mac. This is the native successor to the Qwen3/LLM.swift stack removed in 1.1.1, with none of the download or crash baggage. Every path fails soft to the rule-based formatter when the model is off, unavailable, or declines the input. A minimal instruction set preserves verbatim text in code editors and terminals. (`AIFormatter`)
+- **Speech-engine picker.** Settings → Transcription lets you switch between the Apple engine and WhisperKit; WhisperKit model downloads only appear when that engine is selected.
+- **Liquid Glass recording overlay.** The floating dictation pill is now a genuine glass capsule that refracts the desktop behind it, tinted red on error.
+
+### Changed
+
+- **Minimum macOS raised to 26.0.** The app is built against the macOS 26 SDK to adopt `SpeechAnalyzer`, Foundation Models, and Liquid Glass.
+- **Transcription is now pluggable.** `TranscriptionEngine` (WhisperKit) and `AppleSpeechEngine` both conform to a new `TranscriptionProviding` protocol; the pipeline swaps between them behind one call site and unloads the inactive engine to respect the < 50 MB idle-memory budget.
+- **Language changes apply immediately.** Switching your preferred language re-prepares the locale-pinned Apple engine on the spot instead of waiting for a relaunch.
+- **`NSSpeechRecognitionUsageDescription`** added to Info.plist for the Speech framework.
+
+### Notes
+
+- WhisperKit remains fully supported as an opt-in engine for users who need a specific Whisper model or a locale Apple doesn't ship on-device.
+
 ## [1.1.1] — 2026-05-23
 
 Major release: AI text cleanup feature removed. Whisper rejection policy rewritten around the principle "some transcript is better than breaking the flow of dictation."

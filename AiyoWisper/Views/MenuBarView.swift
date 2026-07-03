@@ -4,8 +4,35 @@ struct MenuBarView: View {
     let appState: AppState
     let modelManager: ModelManager
     @ObservedObject var updaterService: UpdaterService
+    var onLanguageChange: (() -> Void)?
     @Environment(\.openSettings) private var openSettings
     @State private var copiedEntryId: UUID?
+
+    /// Languages to offer for the active engine. The Apple engine only lists what it can
+    /// actually serve on this OS (English for now; more appear as macOS adds them);
+    /// WhisperKit is multilingual, so it lists everything.
+    private var offeredLanguages: [(code: String, name: String)] {
+        guard appState.transcriptionEngine == .apple else { return Constants.Language.available }
+        return Constants.Language.available.filter { appState.appleSupportedLanguages.contains($0.code) }
+    }
+
+    /// Language control for the menu bar. "Auto" spans every offered language and keeps the
+    /// most confident transcript; picking a specific language pins it. Either way the engine
+    /// re-prepares immediately — no Settings trip.
+    private var languageBinding: Binding<String> {
+        Binding(
+            get: { appState.autoDetectLanguage ? "auto" : appState.preferredLanguage },
+            set: { selection in
+                if selection == "auto" {
+                    appState.autoDetectLanguage = true
+                } else {
+                    appState.autoDetectLanguage = false
+                    appState.preferredLanguage = selection
+                }
+                onLanguageChange?()
+            }
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -72,16 +99,18 @@ struct MenuBarView: View {
             HStack {
                 Text("Language:")
                     .foregroundStyle(.secondary)
-                if appState.autoDetectLanguage {
-                    Text("Auto")
-                        .fontWeight(.medium)
-                    if let detected = appState.detectedLanguage {
-                        Text("(\(detected))")
-                            .foregroundStyle(.secondary)
+                Picker("Language", selection: languageBinding) {
+                    Text("Auto").tag("auto")
+                    ForEach(offeredLanguages, id: \.code) { lang in
+                        Text(lang.name).tag(lang.code)
                     }
-                } else {
-                    Text(appState.preferredLanguage.uppercased())
-                        .fontWeight(.medium)
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+                if appState.autoDetectLanguage, let detected = appState.detectedLanguage {
+                    Text("(\(detected))")
+                        .foregroundStyle(.secondary)
                 }
             }
             .font(.caption)

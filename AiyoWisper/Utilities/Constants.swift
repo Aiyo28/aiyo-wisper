@@ -27,6 +27,8 @@ enum Constants {
         static let autoDetectLanguage = "autoDetectLanguage"
         static let minimalFormattingForEditors = "minimalFormattingForEditors"
         static let characterByCharacterMode = "characterByCharacterMode"
+        static let transcriptionEngine = "transcriptionEngine"
+        static let useAIFormatting = "useAIFormatting"
     }
 
     enum TextInjection {
@@ -103,5 +105,17 @@ enum Constants {
             ("ru", "Russian"),
         ]
         static let defaultLanguage = "en"
+
+        /// Maps our short language codes to full BCP-47 locale identifiers that
+        /// Apple's `SpeechTranscriber` expects. Apple STT is locale-pinned, which is
+        /// exactly what fixes the old WhisperKit language-mixing bug (CN/EN bleed):
+        /// pin the locale and the model can't wander into another language.
+        static func speechLocaleIdentifier(for code: String) -> String {
+            switch code {
+            case "en": return "en-US"
+            case "ru": return "ru-RU"
+            default:   return "en-US"
+            }
+        }
     }
 }

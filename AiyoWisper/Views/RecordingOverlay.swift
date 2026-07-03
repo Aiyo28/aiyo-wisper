@@ -129,28 +129,24 @@ private struct RecordingOverlayContent: View {
         status == .error
     }
 
-    /// Pill background tint shifts to a warning red when something failed so the
-    /// user has an unmistakable visual cue alongside the menu-bar error message.
-    /// Without this, an error state previously hid the overlay completely and the
-    /// failure was visually identical to a successful but silent dictation.
-    private var pillFill: Color {
-        isError ? Color(red: 0.55, green: 0.10, blue: 0.10).opacity(0.92)
-                : Color.black.opacity(0.85)
-    }
-
     var body: some View {
-        RoundedRectangle(cornerRadius: 22)
-            .fill(pillFill)
-            .frame(width: 120, height: 44)
-            .overlay {
-                if isError {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.white)
-                        .font(.system(size: 18, weight: .semibold))
-                } else {
-                    WaveformView(isRecording: isRecording)
-                }
+        Group {
+            if isError {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.white)
+                    .font(.system(size: 18, weight: .semibold))
+            } else {
+                WaveformView(isRecording: isRecording)
             }
+        }
+        .frame(width: 120, height: 44)
+        // Liquid Glass (macOS 26): the floating pill is now a genuine glass capsule
+        // that refracts the desktop behind it — tinted warning-red on error so a
+        // failure stays unmistakable alongside the menu-bar message.
+        .glassEffect(
+            isError ? Glass.regular.tint(.red.opacity(0.75)) : Glass.regular,
+            in: RoundedRectangle(cornerRadius: 22)
+        )
     }
 }
 

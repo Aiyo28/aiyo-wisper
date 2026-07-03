@@ -13,7 +13,14 @@ struct AiyoWisperApp: App {
 
     var body: some Scene {
         MenuBarExtra("AIYO Wisper", systemImage: menuBarIcon) {
-            MenuBarView(appState: appState, modelManager: modelManager, updaterService: updaterService)
+            MenuBarView(
+                appState: appState,
+                modelManager: modelManager,
+                updaterService: updaterService,
+                onLanguageChange: { [pipeline] in
+                    Task { await pipeline?.prepareEngine() }
+                }
+            )
         }
         .menuBarExtraStyle(.window)
 

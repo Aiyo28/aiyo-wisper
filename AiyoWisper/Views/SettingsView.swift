@@ -21,7 +21,7 @@ struct SettingsView: View {
             }
 
             Tab("Formatting", systemImage: "textformat") {
-                FormattingTab(appState: appState, dictionaryManager: dictionaryManager, learner: learner)
+                FormattingTab(appState: appState, dictionaryManager: dictionaryManager, learner: learner, onModelSelected: onModelSelected)
             }
 
             Tab("Transcription", systemImage: "cpu") {
@@ -248,39 +248,62 @@ private struct FormattingTab: View {
     let appState: AppState
     let dictionaryManager: DictionaryManager
     let learner: DictationLearner
+    var onModelSelected: (() -> Void)?
     @State private var preferredLanguage: String
     @State private var autoDetect: Bool
     @State private var minimalFormatting: Bool
     @State private var showingAddDictionarySheet = false
 
-    init(appState: AppState, dictionaryManager: DictionaryManager, learner: DictationLearner) {
+    init(appState: AppState, dictionaryManager: DictionaryManager, learner: DictationLearner, onModelSelected: (() -> Void)? = nil) {
         self.appState = appState
         self.dictionaryManager = dictionaryManager
         self.learner = learner
+        self.onModelSelected = onModelSelected
         _preferredLanguage = State(initialValue: appState.preferredLanguage)
         _autoDetect = State(initialValue: appState.autoDetectLanguage)
         _minimalFormatting = State(initialValue: appState.minimalFormattingForEditors)
+    }
+
+    /// Languages offered for the active engine — Apple lists only what it can serve on this
+    /// OS; WhisperKit lists everything (it's multilingual).
+    private var offeredLanguages: [(code: String, name: String)] {
+        guard appState.transcriptionEngine == .apple else { return Constants.Language.available }
+        return Constants.Language.available.filter { appState.appleSupportedLanguages.contains($0.code) }
     }
 
     var body: some View {
         Form {
             Section("Language") {
                 Picker("Preferred language", selection: $preferredLanguage) {
-                    ForEach(Constants.Language.available, id: \.code) { lang in
+                    ForEach(offeredLanguages, id: \.code) { lang in
                         Text(lang.name).tag(lang.code)
                     }
                 }
                 .onChange(of: preferredLanguage) { _, newValue in
                     appState.preferredLanguage = newValue
+                    // Re-prepare the engine so a locale-pinned Apple transcriber picks up
+                    // the new language immediately (WhisperKit ignores this at load — harmless).
+                    onModelSelected?()
                 }
 
                 Toggle("Auto-detect language", isOn: $autoDetect)
                     .onChange(of: autoDetect) { _, newValue in
                         appState.autoDetectLanguage = newValue
+                        onModelSelected?()
                     }
 
                 if autoDetect {
-                    Text("Whisper will detect the spoken language automatically. Works best with larger models.")
+                    if appState.transcriptionEngine == .apple {
+                        Text("Transcribes in every language your Mac supports and keeps the most confident result. Right now Apple's on-device engine only offers English here; more languages appear automatically as macOS adds them. For Russian today, use the WhisperKit engine.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("WhisperKit will detect the spoken language automatically. Works best with larger models.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text("Transcription is pinned to your preferred language above.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -448,53 +471,94 @@ private struct TranscriptionTab: View {
     var onModelSelected: (() -> Void)?
     @State private var downloadError: String?
 
+    private var engineBinding: Binding<TranscriptionEngineKind> {
+        Binding(
+            get: { appState.transcriptionEngine },
+            set: { appState.transcriptionEngine = $0; onModelSelected?() }
+        )
+    }
+
+    private var aiFormattingBinding: Binding<Bool> {
+        Binding(get: { appState.useAIFormatting }, set: { appState.useAIFormatting = $0 })
+    }
+
     var body: some View {
         Form {
-            Section("Speech Recognition Model") {
-                ForEach(modelManager.availableModels) { model in
-                    ModelRow(
-                        model: model,
-                        isActive: appState.selectedModel == model.id,
-                        isDownloading: modelManager.isDownloading && modelManager.currentDownloadModel == model.id,
-                        canDownload: !modelManager.isDownloading,
-                        downloadProgress: modelManager.downloadProgress,
-                        showLanguageWarning: model.englishOnly && (appState.autoDetectLanguage || appState.preferredLanguage != "en"),
-                        onSelect: {
-                            appState.selectedModel = model.id
-                            onModelSelected?()
-                        },
-                        onDownload: {
-                            Task {
-                                do {
-                                    try await modelManager.download(modelId: model.id)
-                                } catch {
-                                    downloadError = error.localizedDescription
-                                }
-                            }
-                        },
-                        onDelete: {
-                            do {
-                                try modelManager.deleteModel(model.id)
-                            } catch {
-                                downloadError = "Failed to delete: \(error.localizedDescription)"
-                            }
-                            if appState.selectedModel == model.id {
-                                if let first = modelManager.availableModels.first(where: \.isDownloaded) {
-                                    appState.selectedModel = first.id
-                                }
-                            }
-                        }
-                    )
+            Section("Speech Engine") {
+                Picker("Engine", selection: engineBinding) {
+                    ForEach(TranscriptionEngineKind.allCases) { kind in
+                        Text(kind.displayName).tag(kind)
+                    }
+                }
+                Text(appState.transcriptionEngine.blurb)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("AI Formatting") {
+                Toggle("Clean up transcripts with on-device AI", isOn: aiFormattingBinding)
+                    .disabled(!appState.aiFormattingAvailable)
+                if appState.aiFormattingAvailable {
+                    Text("Apple's on-device Foundation model fixes punctuation, capitalization, and false starts. Nothing leaves your Mac. Falls back to fast rule-based formatting when off.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(AIFormatter.unavailableReason ?? "On-device AI formatting isn't available on this Mac. Rule-based formatting is used instead.")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                 }
             }
 
-            if let error = downloadError {
-                Section {
-                    Text(error).foregroundStyle(.red).font(.caption)
+            // WhisperKit's downloadable CoreML models only apply when that engine is
+            // selected. The Apple engine manages its locale models through the system.
+            if appState.transcriptionEngine == .whisperKit {
+                Section("WhisperKit Models") {
+                    ForEach(modelManager.availableModels) { model in
+                        ModelRow(
+                            model: model,
+                            isActive: appState.selectedModel == model.id,
+                            isDownloading: modelManager.isDownloading && modelManager.currentDownloadModel == model.id,
+                            canDownload: !modelManager.isDownloading,
+                            downloadProgress: modelManager.downloadProgress,
+                            showLanguageWarning: model.englishOnly && (appState.autoDetectLanguage || appState.preferredLanguage != "en"),
+                            onSelect: {
+                                appState.selectedModel = model.id
+                                onModelSelected?()
+                            },
+                            onDownload: {
+                                Task {
+                                    do {
+                                        try await modelManager.download(modelId: model.id)
+                                    } catch {
+                                        downloadError = error.localizedDescription
+                                    }
+                                }
+                            },
+                            onDelete: {
+                                do {
+                                    try modelManager.deleteModel(model.id)
+                                } catch {
+                                    downloadError = "Failed to delete: \(error.localizedDescription)"
+                                }
+                                if appState.selectedModel == model.id {
+                                    if let first = modelManager.availableModels.first(where: \.isDownloaded) {
+                                        appState.selectedModel = first.id
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+
+                if let error = downloadError {
+                    Section {
+                        Text(error).foregroundStyle(.red).font(.caption)
+                    }
                 }
             }
         }
         .formStyle(.grouped)
+        .onAppear { appState.aiFormattingAvailable = AIFormatter.isAvailable }
     }
 }
 
