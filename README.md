@@ -12,23 +12,13 @@ Hold a key, speak, text appears at your cursor. No cloud. No subscription. Every
 
 ## What it does
 
-**Dictation** — Hold Control, speak, release. Text appears wherever your cursor is. In any app. Speech recognition runs on-device with Apple's built-in `SpeechAnalyzer` — no model to download, and the transcriber is pinned to your chosen language so it never mixes languages mid-sentence.
+**Dictation** — Hold Control, speak, release. Text appears wherever your cursor is. In any app. Speech recognition runs on-device with Apple's built-in `SpeechAnalyzer`. macOS manages the language model and fetches it once on first use. Each transcription pass is pinned to a single language so it never mixes languages mid-sentence; turn off auto-detect in Settings to pin your preferred language.
 
-**Smart Formatting** — Your dictation is cleaned up by Apple's on-device Foundation model: real punctuation, capitalization, and removal of filler words and false starts. It runs entirely on your Mac's Neural Engine, and falls back to instant rule-based formatting whenever the model is off or unavailable.
+**Smart Formatting** — Your dictation is cleaned up by Apple's on-device Foundation model: real punctuation, capitalization, and removal of filler words and false starts. It runs entirely on your Mac, and falls back to instant rule-based formatting whenever the model is off or unavailable.
 
 **Voice Shortcuts** — Create trigger phrases that expand during dictation. Say "my email" and it types your full email address.
 
 **Bring-your-own engine** — Prefer WhisperKit's CoreML models? Switch the speech engine in Settings → Transcription and download any Whisper variant you like.
-
-## How it compares
-
-| | AIYO Wisper | SuperWhisper | Wispr Flow |
-|---|:---:|:---:|:---:|
-| Price | **Free** | $10/mo | $15/mo |
-| Local processing | Yes | Cloud | Cloud |
-| Voice shortcuts | Yes | — | — |
-| Open source | MIT | No | No |
-| Privacy | No data leaves Mac | Audio sent to cloud | Audio sent to cloud |
 
 ## Requirements
 
@@ -41,11 +31,11 @@ Hold a key, speak, text appears at your cursor. No cloud. No subscription. Every
 1. Download the latest DMG from [Releases](https://github.com/Aiyo28/aiyo-wisper/releases/latest)
 2. Drag to Applications
 3. Launch — grant Microphone and Accessibility permissions
-4. Start dictating. The built-in Apple engine works out of the box; there's nothing to download.
+4. Start dictating. The built-in Apple engine needs no app-managed model download; macOS fetches the language model for you on first use.
 
 ## Speech engines
 
-By default AIYO Wisper uses Apple's built-in on-device speech recognition — no download, lowest latency, locale-pinned. If you'd rather run WhisperKit, switch engines in Settings → Transcription and pick a model:
+By default AIYO Wisper uses Apple's built-in on-device speech recognition — no app-managed download, lowest latency. If you'd rather run WhisperKit, switch engines in Settings → Transcription and pick a model:
 
 | WhisperKit model | Size | Best for |
 |-------|------|----------|
@@ -56,7 +46,7 @@ By default AIYO Wisper uses Apple's built-in on-device speech recognition — no
 
 ## Privacy
 
-**No audio or text ever leaves your device.** Speech recognition (Apple `SpeechAnalyzer` or WhisperKit) and AI formatting (Apple Foundation Models) all run entirely on your Mac using the Neural Engine and GPU. No cloud APIs, no telemetry, no accounts.
+**No audio or text ever leaves your device.** Speech recognition (Apple `SpeechAnalyzer` or WhisperKit) and AI formatting (Apple Foundation Models) all run entirely on your Mac. No cloud APIs, no telemetry, no accounts. The only network traffic is fetching language and WhisperKit models, and update checks (manual by default; you can enable automatic checks in Settings).
 
 ## Build from Source
 

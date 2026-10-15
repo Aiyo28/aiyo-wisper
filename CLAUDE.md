@@ -33,13 +33,14 @@ MASTERPLAN.md, TODO.md, NEXT.md, session logs, and decision docs live in Knowled
 | TODO | Vault: `Projects/aiyo-wisper/TODO.md` |
 | Session log + decisions | Vault: `Projects/aiyo-wisper/sessions/` |
 | Implementation plans | Vault: `Projects/aiyo-wisper/plans/` |
+| Architecture decisions | `docs/adr/` |
 
 ## Rules
 
-- **Local-only:** No audio or text ever leaves the device.
+- **Local-only:** No audio or text must ever leave the device. Network is limited to model downloads and Sparkle update checks.
 - **TDD:** Vertical slices. Swift Testing (`@Test`, `#expect`).
 - **Idle memory:** Must stay under 50 MB.
-- **Latency:** < 3s (tiny model), < 5s (large model).
+- **Latency:** Release-to-text must stay under 3s (tiny model) and 5s (large model).
 
 ## Critical Gotchas
 
@@ -49,13 +50,13 @@ MASTERPLAN.md, TODO.md, NEXT.md, session logs, and decision docs live in Knowled
 4. **TCC permissions:** App needs BOTH Accessibility AND Input Monitoring. After `tccutil reset`, re-grant manually.
 5. **Input Monitoring:** Separate from Accessibility — required for global keystroke detection.
 6. **Clipboard guard:** `TextInjector` falls back to clipboard paste for terminals. Must restore original clipboard.
-7. **`@MainActor` isolation:** Views + any UI-touching code. `WhisperManager` is `@MainActor`.
+7. **`@MainActor` isolation:** Views + any UI-touching code. `DictationPipeline` and `ModelManager` are `@MainActor`; the engines (`AppleSpeechEngine`, `TranscriptionEngine`) are `@unchecked Sendable` and must only be driven from it.
 8. **Model IDs:** WhisperKit model names must match HuggingFace repo naming exactly.
 9. **Audio format:** 16kHz mono Float32 — `AudioRecorder` output. WhisperKit consumes it directly; `AppleSpeechEngine` writes a temp WAV and lets `SpeechAnalyzer.analyzeSequence(from:)` convert internally.
-10. **MenuBarExtra lifecycle:** No `WindowGroup` — app lifecycle via `MenuBarExtra` only.
-11. **Apple Speech is locale-pinned.** `SpeechTranscriber(locale:)` transcribes ONE language — this is the fix for language bleed, not a limitation to work around. "Auto-detect" applies to WhisperKit only. Changing preferred language must re-call `prepareEngine()`.
-12. **`AssetInventory` reserve limit.** The Apple engine downloads + reserves a locale on first use. `reservedLocales`/`supportedLocales`/`installedLocales` are `async` getters; `reservedLocales` too.
-13. **Foundation Models is optional at runtime.** `AIFormatter.isAvailable` gates on Apple Intelligence being enabled + eligible hardware. Never assume it's present — the rule-based path must always work.
+10. **MenuBarExtra lifecycle:** No `WindowGroup` — `MenuBarExtra` is the primary scene (plus onboarding `Window` and `Settings`).
+11. **Apple Speech is locale-pinned per pass** ([ADR 0001](docs/adr/0001-apple-speech-locale-pinned.md)). Never work around it; Auto = one pinned pass per supported locale. Changing language or auto-detect must re-call `prepareEngine()`.
+12. **`AssetInventory`:** The Apple engine downloads + reserves a locale on first use. `reservedLocales`/`supportedLocales`/`installedLocales` are `async` getters.
+13. **Foundation Models is optional at runtime** ([ADR 0002](docs/adr/0002-foundation-models-formatter-with-rule-based-fallback.md)). `AIFormatter.isAvailable` gates on Apple Intelligence being enabled + eligible hardware. Never assume it's present — the rule-based path must always work.
 14. **New-API signatures drift beta→GA.** Verify against the installed SDK's `.swiftinterface` (e.g. `SpeechTranscriber.Preset.transcription`, not the beta `.offlineTranscription`) rather than trusting WWDC-era sample code.
 
 ## Build & Run
@@ -82,8 +83,6 @@ Requires: Microphone + Accessibility permissions in System Settings.
 
 Same error 3x → **STOP**. Verify with user. Write happy path only (<20 lines).
 
-## Open Decisions
+## Not built yet
 
-- ~~Smart formatting engine: rule-based NLP vs. small local LLM~~ → **Resolved (v1.2.0):** Apple Foundation Models on-device LLM, with rule-based fallback.
-- **Command mode** (e.g. "make this a bullet list") — not yet built. Now cleanly doable via `AIFormatter` + a `@Generable` command schema on Foundation Models. Candidate for v1.3.
-- **Streaming transcription** — v1.2 uses batch (transcribe-on-release). `SpeechAnalyzer` also supports live streaming for near-zero post-release latency; candidate enhancement.
+Command mode (voice edit commands via `AIFormatter`) and streaming transcription (dictation is batch, transcribed on release). Formatting engine choice: see [ADR 0002](docs/adr/0002-foundation-models-formatter-with-rule-based-fallback.md).

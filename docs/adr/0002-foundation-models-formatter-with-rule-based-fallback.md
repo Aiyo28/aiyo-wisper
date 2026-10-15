@@ -1,0 +1,3 @@
+# Formatting uses Apple Foundation Models with a rule-based fallback
+
+Smart formatting (punctuation, capitalization, filler and false-start removal) runs on the OS's on-device Foundation Models LLM, which needs no download and never leaves the device; it replaced a bundled local LLM that was slow and download-heavy. Because the model depends on eligible hardware and Apple Intelligence being enabled, `AIFormatter` returns `nil` on any unavailability, error, over-long input, or implausible output, and the pipeline falls back to the regex-based `SmartFormatter`. The rule-based path must always work.
